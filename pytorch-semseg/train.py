@@ -126,13 +126,14 @@ def train(cfg, writer, logger):
             images = images.to(device)
             labels = labels.to(device)
 
-            optimizer.zero_grad()
             outputs = model(images)
 
-            loss = loss_fn(input=outputs, target=labels)
+            loss = loss_fn(input=outputs, target=labels)/20
 
             loss.backward()
-            optimizer.step()
+            if i % 20 == 0:
+                optimizer.step()
+                optimizer.zero_grad()
 
             time_meter.update(time.time() - start_ts)
 
