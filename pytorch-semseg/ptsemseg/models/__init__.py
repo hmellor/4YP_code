@@ -8,6 +8,7 @@ from ptsemseg.models.pspnet import *
 from ptsemseg.models.icnet import *
 from ptsemseg.models.linknet import *
 from ptsemseg.models.frrn import *
+from ptsemseg.models.fcnan import *
 
 
 def get_model(model_dict, n_classes, version=None):
@@ -28,6 +29,11 @@ def get_model(model_dict, n_classes, version=None):
         model = model(n_classes=n_classes, **param_dict)
         vgg16 = models.vgg16(pretrained=True)
         model.init_vgg16_params(vgg16)
+
+    elif name == "fcnan":
+        model = model(n_classes=n_classes, **param_dict)
+        alexnet = models.alexnet(pretrained=True)
+        model.init_alexnet_params(alexnet)
 
     elif name == "unet":
         model = model(n_classes=n_classes, **param_dict)
@@ -61,6 +67,7 @@ def _get_model_instance(name):
             "linknet": linknet,
             "frrnA": frrn,
             "frrnB": frrn,
+            "fcnan": fcnan,
         }[name]
     except:
         raise("Model {} not available".format(name))

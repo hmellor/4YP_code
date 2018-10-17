@@ -318,8 +318,8 @@ class fcn8s(nn.Module):
 
         for m in self.modules():
             if isinstance(m, nn.ConvTranspose2d):
-                m.weight.data.copy_(get_upsampling_weight(m.in_channels, 
-                                                          m.out_channels, 
+                m.weight.data.copy_(get_upsampling_weight(m.in_channels,
+                                                          m.out_channels,
                                                           m.kernel_size[0]))
 
 
@@ -337,14 +337,14 @@ class fcn8s(nn.Module):
             score_pool4c = self.score_pool4(conv4)[:, :, 5:5+upscore2.size()[2],
                                                          5:5+upscore2.size()[3]]
             upscore_pool4 = self.upscore4(upscore2 + score_pool4c)
-            
+
             score_pool3c = self.score_pool3(conv3)[:, :, 9:9+upscore_pool4.size()[2],
                                                          9:9+upscore_pool4.size()[3]]
 
             out = self.upscore8(score_pool3c + upscore_pool4)[:, :, 31:31+x.size()[2],
                                                                     31:31+x.size()[3]]
             return out.contiguous()
-                                                         
+
 
         else:
             score_pool4 = self.score_pool4(conv4)
