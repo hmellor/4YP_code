@@ -22,4 +22,4 @@ training:
         name: 'cross_entropy'
         size_average: False
     lr_schedule:
-    resume: runs/config/80202/fcn8s_pascal.pkl
+    resume: runs/config/80202/config.pkl
