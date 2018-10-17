@@ -34,10 +34,11 @@ def train(cfg, writer, logger):
     torch.cuda.manual_seed(cfg.get('seed', 1337))
     np.random.seed(cfg.get('seed', 1337))
     random.seed(cfg.get('seed', 1337))
+    # Better algo for larger batches
+    torch.backends.cudnn.deterministic = True
 
     # Setup device
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
     # Setup Augmentations
     augmentations = cfg['training'].get('augmentations', None)
     data_aug = get_composed_augmentations(augmentations)
@@ -61,12 +62,12 @@ def train(cfg, writer, logger):
 
     n_classes = t_loader.n_classes
     trainloader = data.DataLoader(t_loader,
-                                  batch_size=cfg['training']['batch_size'], 
-                                  num_workers=cfg['training']['n_workers'], 
+                                  batch_size=cfg['training']['batch_size'],
+                                  num_workers=cfg['training']['n_workers'],
                                   shuffle=True)
 
-    valloader = data.DataLoader(v_loader, 
-                                batch_size=cfg['training']['batch_size'], 
+    valloader = data.DataLoader(v_loader,
+                                batch_size=cfg['training']['batch_size'],
                                 num_workers=cfg['training']['n_workers'])
 
     # Setup Metrics
@@ -79,7 +80,7 @@ def train(cfg, writer, logger):
 
     # Setup optimizer, lr_scheduler and loss function
     optimizer_cls = get_optimizer(cfg)
-    optimizer_params = {k:v for k, v in cfg['training']['optimizer'].items() 
+    optimizer_params = {k:v for k, v in cfg['training']['optimizer'].items()
                         if k != 'name'}
 
     optimizer = optimizer_cls(model.parameters(), **optimizer_params)
@@ -132,13 +133,13 @@ def train(cfg, writer, logger):
 
             loss.backward()
             optimizer.step()
-            
+
             time_meter.update(time.time() - start_ts)
 
             if (i + 1) % cfg['training']['print_interval'] == 0:
                 fmt_str = "Iter [{:d}/{:d}]  Loss: {:.4f}  Time/Image: {:.4f}"
                 print_str = fmt_str.format(i + 1,
-                                           cfg['training']['train_iters'], 
+                                           cfg['training']['train_iters'],
                                            loss.item(),
                                            time_meter.avg / cfg['training']['batch_size'])
 
