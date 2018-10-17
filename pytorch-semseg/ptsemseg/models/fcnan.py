@@ -49,6 +49,7 @@ class fcnan(nn.Module):
         # x = x.view(x.size(0), 256 * 16 * 20)
         score = self.classifier(basenet)
         out = F.interpolate(score, x.size()[2:])
+        #print(score.size(), x.size(), out.size())
         return out
 
 

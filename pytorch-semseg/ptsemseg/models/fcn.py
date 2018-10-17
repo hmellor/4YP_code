@@ -85,7 +85,7 @@ class fcn32s(nn.Module):
         score = self.classifier(conv5)
 
         out = F.upsample_bilinear(score, x.size()[2:])
-
+        #print(score.size(), x.size(), out.size())
         return out
 
     def init_vgg16_params(self, vgg16, copy_fc8=True):
