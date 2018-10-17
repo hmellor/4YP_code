@@ -82,7 +82,7 @@ class pascalVOCLoader(data.Dataset):
             self.files[split] = file_list
         self.setup_annotations()
         self.tf = transforms.Compose([transforms.ToTensor(),
-                                      transforms.Normalize([0.485, 0.456, 0.406], 
+                                      transforms.Normalize([0.485, 0.456, 0.406],
                                                            [0.229, 0.224, 0.225])])
 
     def __len__(self):
@@ -234,7 +234,7 @@ class pascalVOCLoader(data.Dataset):
                 lbl = m.toimage(lbl, high=lbl.max(), low=lbl.min())
                 m.imsave(pjoin(target_path, fname), lbl)
 
-        assert expected == 9733, "unexpected dataset sizes"
+        assert expected == 7402, "unexpected dataset sizes"
 
 
 # Leave code for debugging purposes
