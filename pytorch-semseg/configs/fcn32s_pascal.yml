@@ -4,14 +4,14 @@ data:
     dataset: pascal
     train_split: train
     val_split: val
-    img_rows: 256
-    img_cols: 256
+    img_rows: 'same'
+    img_cols: 'same'
     path: ../VOCdevkit/VOC2011
 training:
     train_iters: 300000
-    batch_size: 14
+    batch_size: 1
     val_interval: 1000
-    n_workers: 0
+    n_workers: 16
     print_interval: 50
     optimizer:
         name: 'sgd'
