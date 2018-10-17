@@ -1,0 +1,25 @@
+model:
+    arch: fcn8s
+data:
+    dataset: pascal
+    train_split: train_aug
+    val_split: val
+    img_rows: 500
+    img_cols: 500
+    path: ../VOCdevkit/VOC2012
+training:
+    train_iters: 300000
+    batch_size: 11
+    val_interval: 1000
+    n_workers: 16
+    print_interval: 50
+    optimizer:
+        name: 'sgd'
+        lr: 1.0e-4
+        weight_decay: 1.6e-3
+        momentum: 0.9
+    loss:
+        name: 'cross_entropy'
+        size_average: False
+    lr_schedule:
+    resume: runs/config/80202/fcn8s_pascal.pkl
