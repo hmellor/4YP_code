@@ -30,7 +30,7 @@ def get_model(model_dict, n_classes, version=None):
         vgg16 = models.vgg16(pretrained=True)
         model.init_vgg16_params(vgg16)
 
-    elif name == "fcnan":
+    elif name == "fcalexnet":
         model = model(n_classes=n_classes, **param_dict)
         alexnet = models.alexnet(pretrained=True)
         model.init_alexnet_params(alexnet)
@@ -67,7 +67,7 @@ def _get_model_instance(name):
             "linknet": linknet,
             "frrnA": frrn,
             "frrnB": frrn,
-            "fcnan": fcnan,
+            "fcalexnet": fcalexnet,
         }[name]
     except:
         raise("Model {} not available".format(name))

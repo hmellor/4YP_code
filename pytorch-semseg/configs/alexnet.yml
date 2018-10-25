@@ -1,5 +1,5 @@
 model:
-    arch: fcnan
+    arch: fcalexnet
 data:
     dataset: pascal
     train_split: train

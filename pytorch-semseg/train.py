@@ -120,7 +120,6 @@ def train(cfg, writer, logger):
     flag = True
 
     it_per_step = 20
-
     while i <= cfg['training']['train_iters'] and flag:
         for (images, labels) in trainloader:
             i += 1
@@ -133,11 +132,11 @@ def train(cfg, writer, logger):
             outputs = model(images)
 
             loss = loss_fn(input=outputs, target=labels) / it_per_step
-            if i % it_per_step == 1:
+            if i % it_per_step == 1 or it_per_step == 1:
                 optimizer.zero_grad()
 
             loss.backward()
-            if (i + 1) % it_per_step == 1:
+            if (i + 1) % it_per_step == 1 or it_per_step == 1:
                 optimizer.step()
                 optimizer.zero_grad()
 
@@ -165,7 +164,6 @@ def train(cfg, writer, logger):
 
                         outputs = model(images_val)
                         val_loss = loss_fn(input=outputs, target=labels_val)
-
                         pred = outputs.data.max(1)[1].cpu().numpy()
                         gt = labels_val.data.cpu().numpy()
                         print("pred: ", np.unique(pred, return_counts=True))
