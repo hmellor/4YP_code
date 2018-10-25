@@ -168,6 +168,8 @@ def train(cfg, writer, logger):
 
                         pred = outputs.data.max(1)[1].cpu().numpy()
                         gt = labels_val.data.cpu().numpy()
+                        print("pred: ", np.unique(pred, return_counts=True))
+                        print("outputs: ", np.unique(outputs, return_counts=True))
 
                         running_metrics_val.update(gt, pred)
                         val_loss_meter.update(val_loss.item())

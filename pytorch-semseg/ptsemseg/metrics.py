@@ -15,6 +15,11 @@ class runningScore(object):
             n_class * label_true[mask].astype(int) + label_pred[mask],
             minlength=n_class ** 2,
         ).reshape(n_class, n_class)
+        # print(n_class)
+        # print(np.unique(mask, return_counts=True))
+        # print(np.unique(hist, return_counts=True))
+        # print(np.unique(label_true, return_counts=True))
+        # print(np.unique(label_pred, return_counts=True))
         return hist
 
     def update(self, label_trues, label_preds):
@@ -71,4 +76,3 @@ class averageMeter(object):
         self.sum += val * n
         self.count += n
         self.avg = self.sum / self.count
-
