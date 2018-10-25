@@ -27,6 +27,7 @@ from ptsemseg.optimizers import get_optimizer
 
 from tensorboardX import SummaryWriter
 
+
 def train(cfg, writer, logger):
 
     # Setup seeds
@@ -76,11 +77,12 @@ def train(cfg, writer, logger):
     # Setup Model
     model = get_model(cfg['model'], n_classes).to(device)
 
-    model = torch.nn.DataParallel(model, device_ids=range(torch.cuda.device_count()))
+    model = torch.nn.DataParallel(
+        model, device_ids=range(torch.cuda.device_count()))
 
     # Setup optimizer, lr_scheduler and loss function
     optimizer_cls = get_optimizer(cfg)
-    optimizer_params = {k:v for k, v in cfg['training']['optimizer'].items()
+    optimizer_params = {k: v for k, v in cfg['training']['optimizer'].items()
                         if k != 'name'}
 
     optimizer = optimizer_cls(model.parameters(), **optimizer_params)
@@ -96,7 +98,7 @@ def train(cfg, writer, logger):
         if os.path.isfile(cfg['training']['resume']):
             logger.info(
                 "Loading model and optimizer from checkpoint '{}'".format(cfg['training']['resume'])
-            )
+                )
             checkpoint = torch.load(cfg['training']['resume'])
             model.load_state_dict(checkpoint["model_state"])
             optimizer.load_state_dict(checkpoint["optimizer_state"])
@@ -117,6 +119,8 @@ def train(cfg, writer, logger):
     i = start_iter
     flag = True
 
+    it_per_step = 20
+
     while i <= cfg['training']['train_iters'] and flag:
         for (images, labels) in trainloader:
             i += 1
@@ -128,10 +132,12 @@ def train(cfg, writer, logger):
 
             outputs = model(images)
 
-            loss = loss_fn(input=outputs, target=labels)/20
+            loss = loss_fn(input=outputs, target=labels) / it_per_step
+            if i % it_per_step == 1:
+                optimizer.zero_grad()
 
             loss.backward()
-            if i % 20 == 0:
+            if (i + 1) % it_per_step == 1:
                 optimizer.step()
                 optimizer.zero_grad()
 
@@ -162,7 +168,6 @@ def train(cfg, writer, logger):
 
                         pred = outputs.data.max(1)[1].cpu().numpy()
                         gt = labels_val.data.cpu().numpy()
-
 
                         running_metrics_val.update(gt, pred)
                         val_loss_meter.update(val_loss.item())
@@ -218,8 +223,8 @@ if __name__ == "__main__":
     with open(args.config) as fp:
         cfg = yaml.load(fp)
 
-    run_id = random.randint(1,100000)
-    logdir = os.path.join('runs', os.path.basename(args.config)[:-4] , str(run_id))
+    run_id = random.randint(1, 100000)
+    logdir = os.path.join('runs', os.path.basename(args.config)[:-4], str(run_id))
     writer = SummaryWriter(log_dir=logdir)
 
     print('RUNDIR: {}'.format(logdir))
