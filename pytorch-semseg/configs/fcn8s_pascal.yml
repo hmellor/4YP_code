@@ -6,7 +6,7 @@ data:
     val_split: val
     img_rows: 'same'
     img_cols: 'same'
-    path: ../VOCdevkit/VOC2012
+    path: ../datasets/VOCdevkit/VOC2012
 training:
     train_iters: 300000
     batch_size: 1

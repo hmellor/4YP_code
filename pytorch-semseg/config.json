@@ -1,11 +1,11 @@
 {
   "pascal":
   {
-    "data_path": "../VOCdevkit/VOC2012/"
+    "data_path": "../datasets/VOCdevkit/VOC2012/"
   },
 
   "sbd":
   {
-    "data_path": "../benchmark_RELEASE/"
+    "data_path": "../datasets/benchmark_RELEASE/"
   }
 }
