@@ -168,9 +168,11 @@ def train(cfg, writer, logger_old, run_id):
             time_meter.update(time.time() - start_ts)
 
             if (i + 1) % (cfg['training']['print_interval']*it_per_step) == 0:
-                fmt_str = "Iter [{}/{:d}]  Loss: {:.4f}  Time/Image: {:.4f}"
+                fmt_str = "Iter [{}/{:d}] Epoch [{}/{}] Loss: {:.4f}  Time/Image: {:.4f}"
                 print_str = fmt_str.format(int((i + 1)/it_per_step),
                                            int(train_len*(cfg['training']['epochs'])/it_per_step),
+                                           floor((i+1)/train_len),
+                                           int(cfg['training']['epochs']),
                                            loss.item(),
                                            time_meter.avg / cfg['training']['batch_size'])
 
@@ -179,7 +181,7 @@ def train(cfg, writer, logger_old, run_id):
                 writer.add_scalar('loss/train_loss', loss.item(), i+1)
                 time_meter.reset()
 
-            if (i + 1) % cfg['training']['val_interval'] == 0 or \
+            if (i + 1) % train_len == 0 or \
                (i + 1) == train_len*(cfg['training']['epochs']):
                 optimizer.step()
                 optimizer.zero_grad()
@@ -200,7 +202,7 @@ def train(cfg, writer, logger_old, run_id):
                         val_loss_meter.update(val_loss.item())
 
                 writer.add_scalar('loss/val_loss', val_loss_meter.avg, i+1)
-                logger_old.info("Epoch %d Loss: %.4f" % (int((i + 1)/cfg['training']['val_interval']), val_loss_meter.avg))
+                logger_old.info("Epoch %d Loss: %.4f" % (int((i + 1)/train_len), val_loss_meter.avg))
 
                 score, class_iou = running_metrics_val.get_scores()
                 for k, v in score.items():
