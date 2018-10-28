@@ -16,6 +16,7 @@ import torchvision.models as models
 
 from torch.utils import data
 from tqdm import tqdm
+from math import ceil, floor
 
 from ptsemseg.models import get_model
 from ptsemseg.loss import get_loss_function
@@ -168,11 +169,15 @@ def train(cfg, writer, logger_old, run_id):
             time_meter.update(time.time() - start_ts)
 
             if (i + 1) % (cfg['training']['print_interval']*it_per_step) == 0:
-                fmt_str = "Iter [{}/{:d}] Epoch [{}/{}] Loss: {:.4f}  Time/Image: {:.4f}"
-                print_str = fmt_str.format(int((i + 1)/it_per_step),
-                                           int(train_len*(cfg['training']['epochs'])/it_per_step),
-                                           floor((i+1)/train_len),
-                                           int(cfg['training']['epochs']),
+                fmt_str = "Epoch [{}/{}] Iter [{}/{:d}] Loss: {:.4f}  Time/Image: {:.4f}"
+                total_iter = int(train_len / it_per_step)
+                total_epoch = int(cfg['training']['epochs'])
+                current_epoch = ceil((i + 1) / train_len)
+                current_iter  = int(((i + 1 )/ it_per_step) - (current_epoch-1)*total_iter)
+                print_str = fmt_str.format(current_epoch,
+                                           total_epoch,
+                                           current_iter,
+                                           total_iter,
                                            loss.item(),
                                            time_meter.avg / cfg['training']['batch_size'])
 
@@ -222,6 +227,8 @@ def train(cfg, writer, logger_old, run_id):
 
                 xp.log_with_tag('train')
                 xp.Parent_Val.log_and_reset()
+                visdir = os.path.join('runs', os.path.basename(args.config)[:-4], str(run_id), 'visdom.json')
+                xp.to_json(visdir)
 
                 val_loss_meter.reset()
                 running_metrics_val.reset()
