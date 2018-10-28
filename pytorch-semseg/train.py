@@ -8,6 +8,7 @@ import visdom
 import random
 import argparse
 import datetime
+import logger
 import numpy as np
 import torch.nn as nn
 import torch.nn.functional as F
@@ -28,7 +29,7 @@ from ptsemseg.optimizers import get_optimizer
 from tensorboardX import SummaryWriter
 
 
-def train(cfg, writer, logger):
+def train(cfg, writer, logger_old, run_id):
 
     # Setup seeds
     torch.manual_seed(cfg.get('seed', 1337))
@@ -86,17 +87,17 @@ def train(cfg, writer, logger):
                         if k != 'name'}
 
     optimizer = optimizer_cls(model.parameters(), **optimizer_params)
-    logger.info("Using optimizer {}".format(optimizer))
+    logger_old.info("Using optimizer {}".format(optimizer))
 
     scheduler = get_scheduler(optimizer, cfg['training']['lr_schedule'])
 
     loss_fn = get_loss_function(cfg)
-    logger.info("Using loss {}".format(loss_fn))
+    logger_old.info("Using loss {}".format(loss_fn))
 
     start_iter = 0
     if cfg['training']['resume'] is not None:
         if os.path.isfile(cfg['training']['resume']):
-            logger.info(
+            logger_old.info(
                 "Loading model and optimizer from checkpoint '{}'".format(cfg['training']['resume'])
                 )
             checkpoint = torch.load(cfg['training']['resume'])
@@ -104,13 +105,13 @@ def train(cfg, writer, logger):
             optimizer.load_state_dict(checkpoint["optimizer_state"])
             scheduler.load_state_dict(checkpoint["scheduler_state"])
             start_iter = checkpoint["epoch"]
-            logger.info(
+            logger_old.info(
                 "Loaded checkpoint '{}' (iter {})".format(
                     cfg['training']['resume'], checkpoint["epoch"]
                 )
             )
         else:
-            logger.info("No checkpoint found at '{}'".format(cfg['training']['resume']))
+            logger_old.info("No checkpoint found at '{}'".format(cfg['training']['resume']))
 
     val_loss_meter = averageMeter()
     time_meter = averageMeter()
@@ -119,6 +120,27 @@ def train(cfg, writer, logger):
     best_iou = -100.0
     i = start_iter
     flag = True
+
+    # Prepare logging
+    xp=logger.Experiment("AlexNet_{}".format(run_id), use_visdom=True,
+                        visdom_opts={'server': 'http://localhost', 'port': 8097},
+                        time_indexing=False, xlabel='Epoch')
+    # log the hyperparameters of the experiment
+    xp.log_config(cfg)
+    # create parent metric for training metrics (easier interface)
+    xp.AvgMetric(tag='train', name="loss")
+    xp.ParentWrapper(tag='val', name='parent',
+                    children=(xp.AvgMetric(name="loss"),
+                                xp.AvgMetric(name='acc'),
+                                xp.AvgMetric(name='acc_cls'),
+                                xp.AvgMetric(name='fwavacc'),
+                                xp.AvgMetric(name='mean_iu')))
+
+    xp.plotter.set_win_opts(name="loss", opts={'title': 'Loss'})
+    xp.plotter.set_win_opts(name="acc", opts={'title': 'Overall Accuracy'})
+    xp.plotter.set_win_opts(name="acc_cls", opts={'title': 'Mean Accuracy'})
+    xp.plotter.set_win_opts(name="fwavacc", opts={'title': 'FreqW Accuracy'})
+    xp.plotter.set_win_opts(name="mean_iu", opts={'title': 'Mean IoU'})
 
     it_per_step = 20
     while i <= train_len*(cfg['training']['epochs']) and flag:
@@ -133,6 +155,8 @@ def train(cfg, writer, logger):
             outputs = model(images)
 
             loss = loss_fn(input=outputs, target=labels) / it_per_step
+            xp.Loss_Train.update(loss.item())
+
             if i % it_per_step == 1 or it_per_step == 1:
                 optimizer.zero_grad()
 
@@ -151,7 +175,7 @@ def train(cfg, writer, logger):
                                            time_meter.avg / cfg['training']['batch_size'])
 
                 print(print_str)
-                logger.info(print_str)
+                logger_old.info(print_str)
                 writer.add_scalar('loss/train_loss', loss.item(), i+1)
                 time_meter.reset()
 
@@ -174,17 +198,26 @@ def train(cfg, writer, logger):
                         val_loss_meter.update(val_loss.item())
 
                 writer.add_scalar('loss/val_loss', val_loss_meter.avg, i+1)
-                logger.info("Iter %d Loss: %.4f" % (i + 1, val_loss_meter.avg))
+                logger_old.info("Epoch %d Loss: %.4f" % (int((i + 1)/cfg['training']['val_interval']), val_loss_meter.avg))
 
                 score, class_iou = running_metrics_val.get_scores()
                 for k, v in score.items():
                     print(k, v)
-                    logger.info('{}: {}'.format(k, v))
+                    logger_old.info('{}: {}'.format(k, v))
                     writer.add_scalar('val_metrics/{}'.format(k), v, i+1)
 
                 for k, v in class_iou.items():
-                    logger.info('{}: {}'.format(k, v))
+                    logger_old.info('{}: {}'.format(k, v))
                     writer.add_scalar('val_metrics/cls_{}'.format(k), v, i+1)
+
+                xp.Parent_Val.update(loss = val_loss_meter.avg,
+                                    acc     = score['Overall Acc: \t'],
+                                    acc_cls = score['Mean Acc : \t'],
+                                    fwavacc = score['FreqW Acc : \t'],
+                                    mean_iu = score['Mean IoU : \t'])
+
+                xp.log_with_tag('train')
+                xp.Parent_Val.log_and_reset()
 
                 val_loss_meter.reset()
                 running_metrics_val.reset()
@@ -231,7 +264,7 @@ if __name__ == "__main__":
     print('RUNDIR: {}'.format(logdir))
     shutil.copy(args.config, logdir)
 
-    logger = get_logger(logdir)
-    logger.info('Let the games begin')
+    logger_old = get_logger(logdir)
+    logger_old.info('Let the games begin')
 
-    train(cfg, writer, logger)
+    train(cfg, writer, logger_old, run_id)
