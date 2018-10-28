@@ -115,12 +115,13 @@ def train(cfg, writer, logger):
     val_loss_meter = averageMeter()
     time_meter = averageMeter()
 
+    train_len = t_loader.train_len
     best_iou = -100.0
     i = start_iter
     flag = True
 
     it_per_step = 20
-    while i <= cfg['training']['train_iters'] and flag:
+    while i <= train_len*(cfg['training']['epochs']) and flag:
         for (images, labels) in trainloader:
             i += 1
             start_ts = time.time()
@@ -142,10 +143,10 @@ def train(cfg, writer, logger):
 
             time_meter.update(time.time() - start_ts)
 
-            if (i + 1) % cfg['training']['print_interval'] == 0:
-                fmt_str = "Iter [{:d}/{:d}]  Loss: {:.4f}  Time/Image: {:.4f}"
-                print_str = fmt_str.format(i + 1,
-                                           cfg['training']['train_iters'],
+            if (i + 1) % (cfg['training']['print_interval']*it_per_step) == 0:
+                fmt_str = "Iter [{}/{:d}]  Loss: {:.4f}  Time/Image: {:.4f}"
+                print_str = fmt_str.format(int((i + 1)/it_per_step),
+                                           int(train_len*(cfg['training']['epochs'])/it_per_step),
                                            loss.item(),
                                            time_meter.avg / cfg['training']['batch_size'])
 
@@ -155,7 +156,7 @@ def train(cfg, writer, logger):
                 time_meter.reset()
 
             if (i + 1) % cfg['training']['val_interval'] == 0 or \
-               (i + 1) == cfg['training']['train_iters']:
+               (i + 1) == train_len*(cfg['training']['epochs']):
                 model.eval()
                 with torch.no_grad():
                     for i_val, (images_val, labels_val) in tqdm(enumerate(valloader)):
@@ -166,8 +167,8 @@ def train(cfg, writer, logger):
                         val_loss = loss_fn(input=outputs, target=labels_val)
                         pred = outputs.data.max(1)[1].cpu().numpy()
                         gt = labels_val.data.cpu().numpy()
-                        print("pred: ", np.unique(pred, return_counts=True))
-                        print("outputs: ", np.unique(outputs, return_counts=True))
+                        #print("pred: ", np.unique(pred, return_counts=True))
+                        #print("outputs: ", np.unique(outputs, return_counts=True))
 
                         running_metrics_val.update(gt, pred)
                         val_loss_meter.update(val_loss.item())
@@ -203,7 +204,7 @@ def train(cfg, writer, logger):
                                                  cfg['data']['dataset']))
                     torch.save(state, save_path)
 
-            if (i + 1) == cfg['training']['train_iters']:
+            if (i + 1) == train_len*(cfg['training']['epochs']):
                 flag = False
                 break
 

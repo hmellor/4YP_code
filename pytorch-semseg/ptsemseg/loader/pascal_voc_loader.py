@@ -69,6 +69,7 @@ class pascalVOCLoader(data.Dataset):
         self.is_transform = is_transform
         self.augmentations = augmentations
         self.img_norm = img_norm
+        self.train_len = 0
         self.n_classes = 21
         self.mean = np.array([104.00699, 116.66877, 122.67892])
         self.files = collections.defaultdict(list)
@@ -78,6 +79,8 @@ class pascalVOCLoader(data.Dataset):
         for split in ["train", "val", "trainval"]:
             path = pjoin(self.root, "ImageSets/Segmentation", split + ".txt")
             file_list = tuple(open(path, "r"))
+            if split == 'train':
+                self.train_len = len(file_list)
             file_list = [id_.rstrip() for id_ in file_list]
             self.files[split] = file_list
         self.setup_annotations()
