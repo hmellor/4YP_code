@@ -181,6 +181,8 @@ def train(cfg, writer, logger_old, run_id):
 
             if (i + 1) % cfg['training']['val_interval'] == 0 or \
                (i + 1) == train_len*(cfg['training']['epochs']):
+                optimizer.step()
+                optimizer.zero_grad()
                 model.eval()
                 with torch.no_grad():
                     for i_val, (images_val, labels_val) in tqdm(enumerate(valloader)):
