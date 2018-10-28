@@ -19,9 +19,11 @@ class fcalexnet(nn.Module):
             nn.Conv2d(3, 64, kernel_size=11, stride=4, padding=2),
             nn.ReLU(inplace=True),
             nn.MaxPool2d(kernel_size=3, stride=2),
+            nn.LocalResponseNorm(size=5, alpha=1e-4, beta=0.75, k=1),
             nn.Conv2d(64, 192, kernel_size=5, padding=2),
             nn.ReLU(inplace=True),
             nn.MaxPool2d(kernel_size=3, stride=2),
+            nn.LocalResponseNorm(size=5, alpha=1e-4, beta=0.75, k=1),
             nn.Conv2d(192, 384, kernel_size=3, padding=1),
             nn.ReLU(inplace=True),
             nn.Conv2d(384, 256, kernel_size=3, padding=1),
@@ -31,14 +33,16 @@ class fcalexnet(nn.Module):
             nn.MaxPool2d(kernel_size=3, stride=2),
         )
         self.classifier = nn.Sequential(
-            nn.Dropout(),
             nn.Conv2d(256, 4096, kernel_size=6),
             nn.ReLU(inplace=True),
             nn.Dropout(),
             nn.Conv2d(4096, 4096, kernel_size=1),
             nn.ReLU(inplace=True),
+            nn.Dropout(),
             nn.Conv2d(4096, n_classes, kernel_size=1),
         )
+        self.deconv = nn.ConvTranspose2d(n_classes, n_classes, kernel_size=63,
+                                         stride=32, bias=False)
 
         self.min_size = 224
 
@@ -61,18 +65,23 @@ class fcalexnet(nn.Module):
         x_padded = self.pad_input(x)
         out_features = self.features(x_padded)
         out_classifier = self.classifier(out_features)
-        out_interpolated = F.interpolate(out_classifier, x.size()[2:])
+        out_deconv = self.deconv(out_classifier)
+        out_interpolated = F.interpolate(out_deconv, x.size()[2:])
         return out_interpolated
 
     def init_alexnet_params(self, alexnet):
 
-        for (new_module, trained_module) in zip(self.features, alexnet.features):
+        features_rand = [m for m in self.features if not isinstance(m, nn.LocalResponseNorm)]
+        features_trained = [m for m in alexnet.features if not isinstance(m, nn.LocalResponseNorm)]
+        for (new_module, trained_module) in zip(features_rand, features_trained):
             if not isinstance(new_module, nn.Conv2d):
                 continue
             assert isinstance(trained_module, nn.Conv2d)
             new_module.load_state_dict(trained_module.state_dict())
 
-        for (new_module, trained_module) in list(zip(self.classifier, alexnet.classifier))[:-1]:
+        classifier_rand = [m for m in self.classifier if not isinstance(m, nn.Dropout)]
+        classifier_trained = [m for m in alexnet.classifier if not isinstance(m, nn.Dropout)]
+        for (new_module, trained_module) in list(zip(classifier_rand, classifier_trained))[:-1]:
             if not isinstance(new_module, nn.Conv2d):
                 continue
             assert isinstance(trained_module, nn.Linear)

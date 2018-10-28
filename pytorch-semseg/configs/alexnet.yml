@@ -10,7 +10,7 @@ data:
 training:
     epochs: 200
     batch_size: 1
-    n_workers: 16
+    n_workers: 1
     print_interval: 5 # 5 iterations
     optimizer:
         name: 'sgd'
