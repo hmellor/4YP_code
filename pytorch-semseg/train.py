@@ -60,7 +60,8 @@ def train(cfg, writer, logger_old, run_id):
     v_loader = data_loader(
         data_path,
         is_transform=True,
-        split=cfg['data']['val_split'],
+        #split=cfg['data']['val_split'],
+        split=cfg['data']['train_split'],
         img_size=(cfg['data']['img_rows'], cfg['data']['img_cols']),)
 
     n_classes = t_loader.n_classes
@@ -144,6 +145,8 @@ def train(cfg, writer, logger_old, run_id):
     xp.plotter.set_win_opts(name="mean_iu", opts={'title': 'Mean IoU'})
 
     it_per_step = 20
+    print('CAREFUL VAL=TRAIN')
+    
     while i <= train_len*(cfg['training']['epochs']) and flag:
         for (images, labels) in trainloader:
             i += 1
@@ -155,12 +158,13 @@ def train(cfg, writer, logger_old, run_id):
 
             outputs = model(images)
 
-            loss = loss_fn(input=outputs, target=labels) / it_per_step
+            loss = loss_fn(input=outputs, target=labels)
             xp.Loss_Train.update(loss.item())
 
             if i % it_per_step == 1 or it_per_step == 1:
                 optimizer.zero_grad()
 
+            grad_rescaling = torch.tensor(1. / it_per_step).type_as(loss)
             loss.backward()
             if (i + 1) % it_per_step == 1 or it_per_step == 1:
                 optimizer.step()
@@ -170,7 +174,8 @@ def train(cfg, writer, logger_old, run_id):
 
             if (i + 1) % (cfg['training']['print_interval']*it_per_step) == 0:
                 fmt_str = "Epoch [{}/{}] Iter [{}/{:d}] Loss: {:.4f}  Time/Image: {:.4f}"
-                total_iter = int(train_len / it_per_step)
+                batch_size = cfg['training']['batch_size']
+                total_iter = int(train_len / (it_per_step * batch_size))
                 total_epoch = int(cfg['training']['epochs'])
                 current_epoch = ceil((i + 1) / train_len)
                 current_iter  = int(((i + 1 )/ it_per_step) - (current_epoch-1)*total_iter)

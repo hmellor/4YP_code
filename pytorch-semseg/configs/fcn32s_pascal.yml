@@ -8,11 +8,10 @@ data:
     img_cols: 'same'
     path: ../datasets/VOCdevkit/VOC2011
 training:
-    train_iters: 300000
+    epochs: 200
     batch_size: 1
-    val_interval: 1000
-    n_workers: 16
-    print_interval: 50
+    n_workers: 4
+    print_interval: 5
     optimizer:
         name: 'sgd'
         lr: 1.0e-4
