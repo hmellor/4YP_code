@@ -10,12 +10,13 @@ data:
 training:
     epochs: 200
     batch_size: 1
+    acc_batch_size: 20
     n_workers: 4
-    print_interval: 1 # 5 iterations
+    print_interval: 5 # in iterations
     optimizer:
         name: 'sgd'
         lr: 1.0e-3
-        weight_decay: 0  #5.0e-4 # or 0.0625
+        weight_decay: 5.0e-4 # or 0.0625
         momentum: 0.9
     loss:
         name: 'cross_entropy'
