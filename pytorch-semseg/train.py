@@ -17,6 +17,7 @@ import torchvision.models as models
 from torch.utils import data
 from tqdm import tqdm
 from math import ceil, floor
+from collections import MutableMapping
 
 from ptsemseg.models import get_model
 from ptsemseg.loss import get_loss_function
@@ -29,6 +30,15 @@ from ptsemseg.optimizers import get_optimizer
 
 from tensorboardX import SummaryWriter
 
+def flatten(d, parent_key='', sep='_'):
+    items = []
+    for k, v in d.items():
+        new_key = parent_key + sep + k if parent_key else k
+        if isinstance(v, MutableMapping):
+            items.extend(flatten(v, new_key, sep=sep).items())
+        else:
+            items.append((new_key, v))
+    return dict(items)
 
 def train(cfg, writer, logger_old, run_id):
 
@@ -75,6 +85,7 @@ def train(cfg, writer, logger_old, run_id):
 
     # Setup Metrics
     running_metrics_val = runningScore(n_classes)
+    running_metrics_train = runningScore(n_classes)
 
     # Setup Model
     model = get_model(cfg['model'], n_classes).to(device)
@@ -115,6 +126,7 @@ def train(cfg, writer, logger_old, run_id):
             logger_old.info("No checkpoint found at '{}'".format(cfg['training']['resume']))
 
     val_loss_meter = averageMeter()
+    train_loss_meter = averageMeter()
     time_meter = averageMeter()
 
     train_len = t_loader.train_len
@@ -123,13 +135,19 @@ def train(cfg, writer, logger_old, run_id):
     flag = True
 
     # Prepare logging
-    xp=logger.Experiment("AlexNet_{}".format(run_id), use_visdom=True,
-                        visdom_opts={'server': 'http://localhost', 'port': 8097},
-                        time_indexing=False, xlabel='Epoch')
+    xp_name = cfg['model']['arch'] + '_' + str(run_id)
+    xp=logger.Experiment(xp_name,
+                         use_visdom=True, visdom_opts={'server': 'http://localhost',
+                         'port': 8097}, time_indexing=False, xlabel='Epoch')
     # log the hyperparameters of the experiment
-    xp.log_config(cfg)
+    xp.log_config(flatten(cfg))
     # create parent metric for training metrics (easier interface)
-    xp.AvgMetric(tag='train', name="loss")
+    xp.ParentWrapper(tag='train', name='parent',
+                    children=(xp.AvgMetric(name="loss"),
+                                xp.AvgMetric(name='acc'),
+                                xp.AvgMetric(name='acc_cls'),
+                                xp.AvgMetric(name='fwavacc'),
+                                xp.AvgMetric(name='mean_iu')))
     xp.ParentWrapper(tag='val', name='parent',
                     children=(xp.AvgMetric(name="loss"),
                                 xp.AvgMetric(name='acc'),
@@ -143,7 +161,9 @@ def train(cfg, writer, logger_old, run_id):
     xp.plotter.set_win_opts(name="fwavacc", opts={'title': 'FreqW Accuracy'})
     xp.plotter.set_win_opts(name="mean_iu", opts={'title': 'Mean IoU'})
 
-    it_per_step = 20
+    it_per_step = cfg['training']['acc_batch_size']
+    eff_batch_size = cfg['training']['batch_size'] * it_per_step
+
     while i <= train_len*(cfg['training']['epochs']) and flag:
         for (images, labels) in trainloader:
             i += 1
@@ -155,22 +175,23 @@ def train(cfg, writer, logger_old, run_id):
 
             outputs = model(images)
 
-            loss = loss_fn(input=outputs, target=labels) / it_per_step
+            loss = loss_fn(input=outputs, target=labels)
             xp.Loss_Train.update(loss.item())
-
+            # accumulate gradients based on the accumulation batch size
             if i % it_per_step == 1 or it_per_step == 1:
                 optimizer.zero_grad()
 
-            loss.backward()
+            grad_rescaling = torch.tensor(1. / it_per_step).type_as(loss)
+            loss.backward(grad_rescaling)
             if (i + 1) % it_per_step == 1 or it_per_step == 1:
                 optimizer.step()
                 optimizer.zero_grad()
 
             time_meter.update(time.time() - start_ts)
-
+            # training logs
             if (i + 1) % (cfg['training']['print_interval']*it_per_step) == 0:
                 fmt_str = "Epoch [{}/{}] Iter [{}/{:d}] Loss: {:.4f}  Time/Image: {:.4f}"
-                total_iter = int(train_len / it_per_step)
+                total_iter = int(train_len / eff_batch_size)
                 total_epoch = int(cfg['training']['epochs'])
                 current_epoch = ceil((i + 1) / train_len)
                 current_iter  = int(((i + 1 )/ it_per_step) - (current_epoch-1)*total_iter)
@@ -185,7 +206,7 @@ def train(cfg, writer, logger_old, run_id):
                 logger_old.info(print_str)
                 writer.add_scalar('loss/train_loss', loss.item(), i+1)
                 time_meter.reset()
-
+            # end of epoch evaluation
             if (i + 1) % train_len == 0 or \
                (i + 1) == train_len*(cfg['training']['epochs']):
                 optimizer.step()
@@ -200,16 +221,29 @@ def train(cfg, writer, logger_old, run_id):
                         val_loss = loss_fn(input=outputs, target=labels_val)
                         pred = outputs.data.max(1)[1].cpu().numpy()
                         gt = labels_val.data.cpu().numpy()
-                        #print("pred: ", np.unique(pred, return_counts=True))
-                        #print("outputs: ", np.unique(outputs, return_counts=True))
 
                         running_metrics_val.update(gt, pred)
                         val_loss_meter.update(val_loss.item())
 
+                    for i_train, (images_train, labels_train) in tqdm(enumerate(trainloader)):
+                        images_train = images_train.to(device)
+                        labels_train = labels_train.to(device)
+
+                        outputs = model(images_train)
+                        train_loss = loss_fn(input=outputs, target=labels_train)
+                        pred = outputs.data.max(1)[1].cpu().numpy()
+                        gt = labels_train.data.cpu().numpy()
+
+                        running_metrics_train.update(gt, pred)
+                        train_loss_meter.update(train_loss.item())
+
                 writer.add_scalar('loss/val_loss', val_loss_meter.avg, i+1)
-                logger_old.info("Epoch %d Loss: %.4f" % (int((i + 1)/train_len), val_loss_meter.avg))
+                writer.add_scalar('loss/train_loss', train_loss_meter.avg, i+1)
+                logger_old.info("Epoch %d Val Loss: %.4f" % (int((i + 1)/train_len), val_loss_meter.avg))
+                logger_old.info("Epoch %d Train Loss: %.4f" % (int((i + 1)/train_len), train_loss_meter.avg))
 
                 score, class_iou = running_metrics_val.get_scores()
+                print("Validation metrics:")
                 for k, v in score.items():
                     print(k, v)
                     logger_old.info('{}: {}'.format(k, v))
@@ -225,9 +259,27 @@ def train(cfg, writer, logger_old, run_id):
                                     fwavacc = score['FreqW Acc : \t'],
                                     mean_iu = score['Mean IoU : \t'])
 
-                xp.log_with_tag('train')
+                score, class_iou = running_metrics_train.get_scores()
+                print("Training metrics:")
+                for k, v in score.items():
+                    print(k, v)
+                    logger_old.info('{}: {}'.format(k, v))
+                    writer.add_scalar('train_metrics/{}'.format(k), v, i+1)
+
+                for k, v in class_iou.items():
+                    logger_old.info('{}: {}'.format(k, v))
+                    writer.add_scalar('train_metrics/cls_{}'.format(k), v, i+1)
+
+                xp.Parent_Train.update(loss = train_loss_meter.avg,
+                                    acc     = score['Overall Acc: \t'],
+                                    acc_cls = score['Mean Acc : \t'],
+                                    fwavacc = score['FreqW Acc : \t'],
+                                    mean_iu = score['Mean IoU : \t'])
+
                 xp.Parent_Val.log_and_reset()
-                visdir = os.path.join('runs', os.path.basename(args.config)[:-4], str(run_id), 'visdom.json')
+                xp.Parent_Train.log_and_reset()
+                visdir = os.path.join('runs', os.path.basename(args.config)[:-4],
+                                      str(run_id), '{}.json'.format(xp_name))
                 xp.to_json(visdir)
 
                 val_loss_meter.reset()
@@ -279,3 +331,8 @@ if __name__ == "__main__":
     logger_old.info('Let the games begin')
 
     train(cfg, writer, logger_old, run_id)
+
+"""Leave here for debugging
+print("pred: ", np.unique(pred, return_counts=True))
+print("outputs: ", np.unique(outputs, return_counts=True))
+"""
