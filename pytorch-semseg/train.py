@@ -47,8 +47,6 @@ def train(cfg, writer, logger_old, run_id):
     torch.cuda.manual_seed(cfg.get('seed', 1337))
     np.random.seed(cfg.get('seed', 1337))
     random.seed(cfg.get('seed', 1337))
-    # Better algo for larger batches
-    torch.backends.cudnn.deterministic = True
 
     # Setup device
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
