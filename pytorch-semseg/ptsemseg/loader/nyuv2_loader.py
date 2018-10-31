@@ -5,7 +5,7 @@ import torchvision
 import numpy as np
 import scipy.misc as m
 import scipy.io as io
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
 
 from torch.utils import data
 
@@ -15,8 +15,8 @@ from ptsemseg.augmentations import *
 
 class NYUv2Loader(data.Dataset):
     """NYUv2 loader
-    
-    Download From (only 13 classes): 
+
+    Download From (only 13 classes):
         test source: http://www.doc.ic.ac.uk/~ahanda/nyu_test_rgb.tgz
         train source: http://www.doc.ic.ac.uk/~ahanda/nyu_train_rgb.tgz
         test_labels source: https://github.com/ankurhanda/nyuv2-meta-data/raw/master/test_labels_13/nyuv2_test_class13.tgz

@@ -4,7 +4,7 @@ import torch
 import torchvision
 import numpy as np
 import scipy.misc as m
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
 
 from torch.utils import data
 

@@ -5,7 +5,7 @@ import torchvision
 import numpy as np
 import scipy.misc as m
 import scipy.io as io
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
 
 from torch.utils import data
 
@@ -16,7 +16,7 @@ from ptsemseg.augmentations import *
 class SUNRGBDLoader(data.Dataset):
     """SUNRGBD loader
 
-    Download From: 
+    Download From:
     http://www.doc.ic.ac.uk/~ahanda/SUNRGBD-test_images.tgz
         test source: http://www.doc.ic.ac.uk/~ahanda/SUNRGBD-test_images.tgz
         train source: http://www.doc.ic.ac.uk/~ahanda/SUNRGBD-train_images.tgz
