@@ -132,6 +132,7 @@ def train(cfg, writer, logger_old, run_id):
     train_len = t_loader.train_len
     best_iou = -100.0
     i = start_iter
+    j = 0
     flag = True
 
     # Prepare logging
@@ -167,6 +168,7 @@ def train(cfg, writer, logger_old, run_id):
     while i <= train_len*(cfg['training']['epochs']) and flag:
         for (images, labels) in trainloader:
             i += 1
+            j += 1
             start_ts = time.time()
             scheduler.step()
             model.train()
@@ -189,12 +191,12 @@ def train(cfg, writer, logger_old, run_id):
 
             time_meter.update(time.time() - start_ts)
             # training logs
-            if (i + 1) % (cfg['training']['print_interval']*it_per_step) == 0:
+            if (j + 1) % (cfg['training']['print_interval']*it_per_step) == 0:
                 fmt_str = "Epoch [{}/{}] Iter [{}/{:d}] Loss: {:.4f}  Time/Image: {:.4f}"
                 total_iter = int(train_len / eff_batch_size)
                 total_epoch = int(cfg['training']['epochs'])
                 current_epoch = ceil((i + 1) / train_len)
-                current_iter  = int(((i + 1 )/ it_per_step) - (current_epoch-1)*total_iter)
+                current_iter  = int((j + 1 )/ it_per_step)
                 print_str = fmt_str.format(current_epoch,
                                            total_epoch,
                                            current_iter,
@@ -284,6 +286,7 @@ def train(cfg, writer, logger_old, run_id):
 
                 val_loss_meter.reset()
                 running_metrics_val.reset()
+                j = 0
 
                 if score["Mean IoU : \t"] >= best_iou:
                     best_iou = score["Mean IoU : \t"]
