@@ -139,7 +139,7 @@ def train(cfg, writer, logger_old, run_id):
     xp_name = cfg['model']['arch'] + '_' + str(run_id)
     xp=logger.Experiment(xp_name,
                          use_visdom=True, visdom_opts={'server': 'http://localhost',
-                         'port': 8097}, time_indexing=False, xlabel='Epoch')
+                         'port': 8098}, time_indexing=False, xlabel='Epoch')
     # log the hyperparameters of the experiment
     xp.log_config(flatten(cfg))
     # create parent metric for training metrics (easier interface)
