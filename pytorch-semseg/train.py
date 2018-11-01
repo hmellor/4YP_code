@@ -162,7 +162,7 @@ def train(cfg, writer, logger_old, run_id):
 
     it_per_step = cfg['training']['acc_batch_size']
     eff_batch_size = cfg['training']['batch_size'] * it_per_step
-
+    print(torch.cuda.memory_allocated())
     while i <= train_len*(cfg['training']['epochs']) and flag:
         for (images, labels) in trainloader:
             i += 1
@@ -283,6 +283,7 @@ def train(cfg, writer, logger_old, run_id):
                 xp.to_json(visdir)
 
                 val_loss_meter.reset()
+                train_loss_meter.reset()
                 running_metrics_val.reset()
                 running_metrics_train.reset()
                 j = 0
@@ -306,7 +307,7 @@ def train(cfg, writer, logger_old, run_id):
                 flag = False
                 break
 
-
+            print(torch.cuda.memory_allocated())
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="config")
     parser.add_argument(
