@@ -284,6 +284,7 @@ def train(cfg, writer, logger_old, run_id):
 
                 val_loss_meter.reset()
                 running_metrics_val.reset()
+                running_metrics_train.reset()
                 j = 0
 
                 if score["Mean IoU : \t"] >= best_iou:
