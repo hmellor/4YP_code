@@ -178,9 +178,9 @@ def train(cfg, writer, logger_old, run_id):
 
             # accumulate train metrics during train
             pred = outputs.data.max(1)[1].cpu().numpy()
-            gt = labels_train.data.cpu().numpy()
+            gt = labels.data.cpu().numpy()
             running_metrics_train.update(gt, pred)
-            train_loss_meter.update(train_loss.item())
+            train_loss_meter.update(loss.item())
 
             # accumulate gradients based on the accumulation batch size
             if i % it_per_step == 1 or it_per_step == 1:
