@@ -8,7 +8,7 @@ data:
     img_cols: 'same'
     path: ../datasets/VOCdevkit/VOC2011
 training:
-    epochs: 200
+    epochs: 500
     batch_size: 1
     acc_batch_size: 20
     n_workers: 4
