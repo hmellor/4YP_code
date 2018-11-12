@@ -251,7 +251,6 @@ def train(cfg, writer, logger_old, run_id):
                                     acc_cls = score['Mean Acc : \t'],
                                     fwavacc = score['FreqW Acc : \t'],
                                     meaniu = score['Mean IoU : \t'])
-                best_iu.update(xp.meaniu_val).log()
 
                 score, class_iou = running_metrics_train.get_scores()
                 print("Training metrics:")
@@ -272,6 +271,7 @@ def train(cfg, writer, logger_old, run_id):
 
                 xp.Parent_Val.log_and_reset()
                 xp.Parent_Train.log_and_reset()
+                best_iu.update(xp.meaniu_val).log()
                 visdir = os.path.join('runs', os.path.basename(args.config)[:-4],
                                       str(run_id), '{}.json'.format(xp_name))
                 xp.to_json(visdir)
