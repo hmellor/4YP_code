@@ -146,20 +146,20 @@ def train(cfg, writer, logger_old, run_id):
                               xp.AvgMetric(name='acc'),
                               xp.AvgMetric(name='acc_cls'),
                               xp.AvgMetric(name='fwavacc'),
-                              xp.AvgMetric(name='mean_iu')))
+                              xp.AvgMetric(name='meaniu')))
     xp.ParentWrapper(tag='val', name='parent',
                     children=(xp.AvgMetric(name="loss"),
                               xp.AvgMetric(name='acc'),
                               xp.AvgMetric(name='acc_cls'),
                               xp.AvgMetric(name='fwavacc'),
-                              xp.AvgMetric(name='mean_iu')))
-    best_iu = xp.BestMetric(tag='val-best', name='mean_iu')
+                              xp.AvgMetric(name='meaniu')))
+    best_iu = xp.BestMetric(tag='val-best', name='meaniu')
 
     xp.plotter.set_win_opts(name="loss", opts={'title': 'Loss'})
     xp.plotter.set_win_opts(name="acc", opts={'title': 'Overall Accuracy'})
     xp.plotter.set_win_opts(name="acc_cls", opts={'title': 'Mean Accuracy'})
     xp.plotter.set_win_opts(name="fwavacc", opts={'title': 'FreqW Accuracy'})
-    xp.plotter.set_win_opts(name="mean_iu", opts={'title': 'Mean IoU'})
+    xp.plotter.set_win_opts(name="meaniu", opts={'title': 'Mean IoU'})
 
     it_per_step = cfg['training']['acc_batch_size']
     eff_batch_size = cfg['training']['batch_size'] * it_per_step
@@ -250,8 +250,8 @@ def train(cfg, writer, logger_old, run_id):
                                     acc     = score['Overall Acc: \t'],
                                     acc_cls = score['Mean Acc : \t'],
                                     fwavacc = score['FreqW Acc : \t'],
-                                    mean_iu = score['Mean IoU : \t'])
-                best_iu.update(xp.mean_iu_val).log()
+                                    meaniu = score['Mean IoU : \t'])
+                best_iu.update(xp.meaniu_val).log()
 
                 score, class_iou = running_metrics_train.get_scores()
                 print("Training metrics:")
@@ -268,7 +268,7 @@ def train(cfg, writer, logger_old, run_id):
                                     acc     = score['Overall Acc: \t'],
                                     acc_cls = score['Mean Acc : \t'],
                                     fwavacc = score['FreqW Acc : \t'],
-                                    mean_iu = score['Mean IoU : \t'])
+                                    meaniu = score['Mean IoU : \t'])
 
                 xp.Parent_Val.log_and_reset()
                 xp.Parent_Train.log_and_reset()
