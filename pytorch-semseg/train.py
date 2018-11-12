@@ -143,16 +143,17 @@ def train(cfg, writer, logger_old, run_id):
     # create parent metric for training metrics (easier interface)
     xp.ParentWrapper(tag='train', name='parent',
                     children=(xp.AvgMetric(name="loss"),
-                                xp.AvgMetric(name='acc'),
-                                xp.AvgMetric(name='acc_cls'),
-                                xp.AvgMetric(name='fwavacc'),
-                                xp.AvgMetric(name='mean_iu')))
+                              xp.AvgMetric(name='acc'),
+                              xp.AvgMetric(name='acc_cls'),
+                              xp.AvgMetric(name='fwavacc'),
+                              xp.AvgMetric(name='mean_iu')))
     xp.ParentWrapper(tag='val', name='parent',
                     children=(xp.AvgMetric(name="loss"),
-                                xp.AvgMetric(name='acc'),
-                                xp.AvgMetric(name='acc_cls'),
-                                xp.AvgMetric(name='fwavacc'),
-                                xp.AvgMetric(name='mean_iu')))
+                              xp.AvgMetric(name='acc'),
+                              xp.AvgMetric(name='acc_cls'),
+                              xp.AvgMetric(name='fwavacc'),
+                              xp.AvgMetric(name='mean_iu')))
+    best_iu = xp.BestMetric(tag='val-best', name='mean_iu')
 
     xp.plotter.set_win_opts(name="loss", opts={'title': 'Loss'})
     xp.plotter.set_win_opts(name="acc", opts={'title': 'Overall Accuracy'})
@@ -162,7 +163,6 @@ def train(cfg, writer, logger_old, run_id):
 
     it_per_step = cfg['training']['acc_batch_size']
     eff_batch_size = cfg['training']['batch_size'] * it_per_step
-    print(torch.cuda.memory_allocated())
     while i <= train_len*(cfg['training']['epochs']) and flag:
         for (images, labels) in trainloader:
             i += 1
@@ -174,9 +174,14 @@ def train(cfg, writer, logger_old, run_id):
             labels = labels.to(device)
 
             outputs = model(images)
-
             loss = loss_fn(input=outputs, target=labels)
-            xp.Loss_Train.update(loss.item())
+
+            # accumulate train metrics during train
+            pred = outputs.data.max(1)[1].cpu().numpy()
+            gt = labels_train.data.cpu().numpy()
+            running_metrics_train.update(gt, pred)
+            train_loss_meter.update(train_loss.item())
+
             # accumulate gradients based on the accumulation batch size
             if i % it_per_step == 1 or it_per_step == 1:
                 optimizer.zero_grad()
@@ -225,18 +230,6 @@ def train(cfg, writer, logger_old, run_id):
                         running_metrics_val.update(gt, pred)
                         val_loss_meter.update(val_loss.item())
 
-                    for i_train, (images_train, labels_train) in tqdm(enumerate(trainloader)):
-                        images_train = images_train.to(device)
-                        labels_train = labels_train.to(device)
-
-                        outputs = model(images_train)
-                        train_loss = loss_fn(input=outputs, target=labels_train)
-                        pred = outputs.data.max(1)[1].cpu().numpy()
-                        gt = labels_train.data.cpu().numpy()
-
-                        running_metrics_train.update(gt, pred)
-                        train_loss_meter.update(train_loss.item())
-
                 writer.add_scalar('loss/val_loss', val_loss_meter.avg, i+1)
                 writer.add_scalar('loss/train_loss', train_loss_meter.avg, i+1)
                 logger_old.info("Epoch %d Val Loss: %.4f" % (int((i + 1)/train_len), val_loss_meter.avg))
@@ -258,6 +251,7 @@ def train(cfg, writer, logger_old, run_id):
                                     acc_cls = score['Mean Acc : \t'],
                                     fwavacc = score['FreqW Acc : \t'],
                                     mean_iu = score['Mean IoU : \t'])
+                best_iu.update(xp.mean_iu_val).log()
 
                 score, class_iou = running_metrics_train.get_scores()
                 print("Training metrics:")
@@ -307,7 +301,6 @@ def train(cfg, writer, logger_old, run_id):
                 flag = False
                 break
 
-            print(torch.cuda.memory_allocated())
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="config")
     parser.add_argument(
