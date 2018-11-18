@@ -5,11 +5,13 @@ import functools
 from ptsemseg.loss.loss import cross_entropy2d
 from ptsemseg.loss.loss import bootstrapped_cross_entropy2d
 from ptsemseg.loss.loss import multi_scale_cross_entropy2d
+from ptsemseg.loss.loss import macro_average
 
 
 logger = logging.getLogger('ptsemseg')
 
 key2loss = {'cross_entropy': cross_entropy2d,
+            'macro_average': macro_average,
             'bootstrapped_cross_entropy': bootstrapped_cross_entropy2d,
             'multi_scale_cross_entropy': multi_scale_cross_entropy2d,}
 
@@ -26,6 +28,6 @@ def get_loss_function(cfg):
         if loss_name not in key2loss:
             raise NotImplementedError('Loss {} not implemented'.format(loss_name))
 
-        logger.info('Using {} with {} params'.format(loss_name, 
+        logger.info('Using {} with {} params'.format(loss_name,
                                                      loss_params))
         return functools.partial(key2loss[loss_name], **loss_params)

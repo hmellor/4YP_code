@@ -10,21 +10,60 @@ def cross_entropy2d(input, target, weight=None, size_average=True):
 
     # Handle inconsistent size between input and target
     if h > ht and w > wt:  # upsample labels
+        print('resizing, prediction too large')
         target = target.unsequeeze(1)
         target = F.upsample(target, size=(h, w), mode="nearest")
         target = target.sequeeze(1)
     elif h < ht and w < wt:  # upsample images
+        print('resizing, prediction too small')
         input = F.upsample(input, size=(ht, wt), mode="bilinear")
     elif h != ht and w != wt:
         raise Exception("Only support upsampling")
 
     input = input.transpose(1, 2).transpose(2, 3).contiguous().view(-1, c)
     target = target.view(-1)
+#    print('input: ', input.size() ,', target: ', target.size())
     loss = F.cross_entropy(
         input, target, weight=weight, size_average=size_average, ignore_index=250
     )
+    print(loss)
     return loss
 
+def macro_average(input, target):
+    n, c, h, w = input.size()
+    nt, ht, wt = target.size()
+
+    # Handle inconsistent size between input and target
+    if h > ht and w > wt:  # upsample labels
+        print('resizing, prediction too large')
+        target = target.unsequeeze(1)
+        target = F.upsample(target, size=(h, w), mode="nearest")
+        target = target.sequeeze(1)
+    elif h < ht and w < wt:  # upsample images
+        print('resizing, prediction too small')
+        input = F.upsample(input, size=(ht, wt), mode="bilinear")
+    elif h != ht and w != wt:
+        raise Exception("Only support upsampling")
+
+    prediction = input.data.max(1)[1]
+    prediction = prediction.view(-1)
+    input = input.transpose(1, 2).transpose(2, 3).contiguous().view(-1, c)
+    target = target.view(-1)
+    gt_class = torch.max(target)
+    total = prediction.numel()
+    print(torch.min(target), torch.max(target))
+    print(torch.min(prediction), torch.max(prediction))
+    print('input: ', input.size(), ', target: ', target.size(), ', prediction: ', prediction.size())
+
+    loss = 0
+    for i in range(c):
+        tar_class = torch.eq(target.float(), i)
+        pred_class = torch.eq(prediction.float(), i)
+        incorrect = torch.ne(pred_class, tar_class)
+        incorrect_num = torch.sum(incorrect)
+        incorrect_frac = incorrect_num.float() / total
+        loss += incorrect_frac
+    return loss
 
 def multi_scale_cross_entropy2d(
     input, target, weight=None, size_average=True, scale_weight=None
@@ -45,27 +84,27 @@ def multi_scale_cross_entropy2d(
 
 
 def bootstrapped_cross_entropy2d(input,
-                                  target, 
-                                  K, 
-                                  weight=None, 
+                                  target,
+                                  K,
+                                  weight=None,
                                   size_average=True):
 
     batch_size = input.size()[0]
 
-    def _bootstrap_xentropy_single(input, 
-                                   target, 
-                                   K, 
+    def _bootstrap_xentropy_single(input,
+                                   target,
+                                   K,
                                    weight=None,
                                    size_average=True):
 
         n, c, h, w = input.size()
         input = input.transpose(1, 2).transpose(2, 3).contiguous().view(-1, c)
         target = target.view(-1)
-        loss = F.cross_entropy(input, 
-                               target, 
-                               weight=weight, 
+        loss = F.cross_entropy(input,
+                               target,
+                               weight=weight,
                                reduce=False,
-                               size_average=False, 
+                               size_average=False,
                                ignore_index=250)
 
         topk_loss, _ = loss.topk(K)
