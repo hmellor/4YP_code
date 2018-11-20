@@ -2,6 +2,7 @@ import torch
 import numpy as np
 import torch.nn as nn
 import torch.nn.functional as F
+import time
 
 
 def cross_entropy2d(input, target, weight=None, size_average=True):
@@ -26,7 +27,7 @@ def cross_entropy2d(input, target, weight=None, size_average=True):
     loss = F.cross_entropy(
         input, target, weight=weight, size_average=size_average, ignore_index=250
     )
-    print(loss)
+    print(loss.type())
     return loss
 
 def macro_average(input, target):
@@ -88,18 +89,24 @@ def micro_average(input, target):
     # Initialize new variables
     pixel_count = nt*ht*wt
     y_star = torch.zeros_like(target)
+    t = time.time()
 
+    input += 1
     for pixel, (column, gt) in enumerate(zip(input, target)):
-        arg_max = 0
-        for pred, score in enumerate(column):
-            arg = score + (pred != gt).float()
-            if arg > arg_max:
-                arg_max = arg
-                y_star[pixel] = pred
-    score_y = torch.sum(input.gather(1, target.unsqueeze(1)).long())
-    score_y_star = torch.sum(input.gather(1, y_star.unsqueeze(1)).long())
 
-    loss = torch.sum(torch.ne(y_star, target))/pixel_count + score_y_star - score_y
+        if pixel % 1000 == 0:
+            print(time.time()-t, 's')
+            print(pixel)
+            t = time.time()
+
+        column[gt] -= 1
+        y_star[pixel] = torch.argmax(column)
+
+    score_y = torch.sum(input.gather(1, target.unsqueeze(1)))
+    score_y_star = torch.sum(input.gather(1, y_star.unsqueeze(1)))
+
+    loss = torch.sum(torch.ne(y_star, target), dtype=torch.float)/pixel_count + score_y_star - score_y
+    print(loss.type())
     return loss
 
 def multi_scale_cross_entropy2d(
