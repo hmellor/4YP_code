@@ -6,12 +6,14 @@ from ptsemseg.loss.loss import cross_entropy2d
 from ptsemseg.loss.loss import bootstrapped_cross_entropy2d
 from ptsemseg.loss.loss import multi_scale_cross_entropy2d
 from ptsemseg.loss.loss import macro_average
+from ptsemseg.loss.loss import micro_average
 
 
 logger = logging.getLogger('ptsemseg')
 
 key2loss = {'cross_entropy': cross_entropy2d,
             'macro_average': macro_average,
+            'micro_average': micro_average,
             'bootstrapped_cross_entropy': bootstrapped_cross_entropy2d,
             'multi_scale_cross_entropy': multi_scale_cross_entropy2d,}
 

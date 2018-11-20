@@ -65,6 +65,43 @@ def macro_average(input, target):
         loss += incorrect_frac
     return loss
 
+def micro_average(input, target):
+    n, c, h, w = input.size()
+    nt, ht, wt = target.size()
+
+    # Handle inconsistent size between input and target
+    if h > ht and w > wt:  # upsample labels
+        print('resizing, prediction too large')
+        target = target.unsequeeze(1)
+        target = F.upsample(target, size=(h, w), mode="nearest")
+        target = target.sequeeze(1)
+    elif h < ht and w < wt:  # upsample images
+        print('resizing, prediction too small')
+        input = F.upsample(input, size=(ht, wt), mode="bilinear")
+    elif h != ht and w != wt:
+        raise Exception("Only support upsampling")
+
+    # Reshape to nxc and nx1 respectively
+    input = input.transpose(1, 2).transpose(2, 3).contiguous().view(-1, c)
+    target = target.view(-1)
+
+    # Initialize new variables
+    pixel_count = nt*ht*wt
+    y_star = torch.zeros_like(target)
+
+    for pixel, (column, gt) in enumerate(zip(input, target)):
+        arg_max = 0
+        for pred, score in enumerate(column):
+            arg = score + (pred != gt).float()
+            if arg > arg_max:
+                arg_max = arg
+                y_star[pixel] = pred
+    score_y = torch.sum(input.gather(1, target.unsqueeze(1)).long())
+    score_y_star = torch.sum(input.gather(1, y_star.unsqueeze(1)).long())
+
+    loss = torch.sum(torch.ne(y_star, target))/pixel_count + score_y_star - score_y
+    return loss
+
 def multi_scale_cross_entropy2d(
     input, target, weight=None, size_average=True, scale_weight=None
 ):
