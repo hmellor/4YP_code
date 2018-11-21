@@ -88,25 +88,18 @@ def micro_average(input, target):
 
     # Initialize new variables
     pixel_count = nt*ht*wt
-    y_star = torch.zeros_like(target)
-    t = time.time()
-
+    pred = torch.zeros_like(target)
+    arange = torch.arange(pixel_count, device=input.device)
+    # Add delta to input
     input += 1
-    for pixel, (column, gt) in enumerate(zip(input, target)):
-
-        if pixel % 1000 == 0:
-            print(time.time()-t, 's')
-            print(pixel)
-            t = time.time()
-
-        column[gt] -= 1
-        y_star[pixel] = torch.argmax(column)
-
+    input[arange, target] -=1
+    # Evaluate optimal prediction
+    pred = torch.argmax(input, 1)
+    # Evaluate scores for ground truth and prediction
     score_y = torch.sum(input.gather(1, target.unsqueeze(1)))
-    score_y_star = torch.sum(input.gather(1, y_star.unsqueeze(1)))
-
-    loss = torch.sum(torch.ne(y_star, target), dtype=torch.float)/pixel_count + score_y_star - score_y
-    print(loss.type())
+    score_pred = torch.sum(input.gather(1, pred.unsqueeze(1)))
+    # Evaluate total loss
+    loss = torch.sum(torch.ne(pred, target), dtype=torch.float)/pixel_count + score_pred - score_y
     return loss
 
 def multi_scale_cross_entropy2d(
