@@ -144,20 +144,24 @@ def train(cfg, writer, logger_old, run_id):
     xp.ParentWrapper(tag='train', name='parent',
                     children=(xp.AvgMetric(name="loss"),
                               xp.AvgMetric(name='acc'),
-                              xp.AvgMetric(name='acc_cls'),
+                              xp.AvgMetric(name='acccls'),
                               xp.AvgMetric(name='fwavacc'),
                               xp.AvgMetric(name='meaniu')))
     xp.ParentWrapper(tag='val', name='parent',
                     children=(xp.AvgMetric(name="loss"),
                               xp.AvgMetric(name='acc'),
-                              xp.AvgMetric(name='acc_cls'),
+                              xp.AvgMetric(name='acccls'),
                               xp.AvgMetric(name='fwavacc'),
                               xp.AvgMetric(name='meaniu')))
+    best_iu = xp.BestMetric(tag='val-best', name='loss', mode='min')
+    best_iu = xp.BestMetric(tag='val-best', name='acc')
+    best_iu = xp.BestMetric(tag='val-best', name='acccls')
+    best_iu = xp.BestMetric(tag='val-best', name='fwavacc')
     best_iu = xp.BestMetric(tag='val-best', name='meaniu')
 
     xp.plotter.set_win_opts(name="loss", opts={'title': 'Loss'})
     xp.plotter.set_win_opts(name="acc", opts={'title': 'Overall Accuracy'})
-    xp.plotter.set_win_opts(name="acc_cls", opts={'title': 'Mean Accuracy'})
+    xp.plotter.set_win_opts(name="acccls", opts={'title': 'Mean Accuracy'})
     xp.plotter.set_win_opts(name="fwavacc", opts={'title': 'FreqW Accuracy'})
     xp.plotter.set_win_opts(name="meaniu", opts={'title': 'Mean IoU'})
 
@@ -248,7 +252,7 @@ def train(cfg, writer, logger_old, run_id):
 
                 xp.Parent_Val.update(loss = val_loss_meter.avg,
                                     acc     = score['Overall Acc: \t'],
-                                    acc_cls = score['Mean Acc : \t'],
+                                    acccls = score['Mean Acc : \t'],
                                     fwavacc = score['FreqW Acc : \t'],
                                     meaniu = score['Mean IoU : \t'])
 
@@ -265,13 +269,18 @@ def train(cfg, writer, logger_old, run_id):
 
                 xp.Parent_Train.update(loss = train_loss_meter.avg,
                                     acc     = score['Overall Acc: \t'],
-                                    acc_cls = score['Mean Acc : \t'],
+                                    acccls = score['Mean Acc : \t'],
                                     fwavacc = score['FreqW Acc : \t'],
                                     meaniu = score['Mean IoU : \t'])
 
                 xp.Parent_Val.log_and_reset()
                 xp.Parent_Train.log_and_reset()
+                best_iu.update(xp.loss_val).log()
+                best_iu.update(xp.acc_val).log()
+                best_iu.update(xp.acccls_val).log()
+                best_iu.update(xp.fwavacc_val).log()
                 best_iu.update(xp.meaniu_val).log()
+
                 visdir = os.path.join('runs', os.path.basename(args.config)[:-4],
                                       str(run_id), '{}.json'.format(xp_name))
                 xp.to_json(visdir)
