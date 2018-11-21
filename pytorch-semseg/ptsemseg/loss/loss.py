@@ -99,8 +99,8 @@ def micro_average(input, target):
     score_y = torch.sum(input.gather(1, target.unsqueeze(1)))
     score_pred = torch.sum(input.gather(1, pred.unsqueeze(1)))
     # Evaluate total loss
-    loss = torch.sum(torch.ne(pred, target), dtype=torch.float)/pixel_count + score_pred - score_y
-    return loss
+    loss = torch.sum(torch.ne(pred, target), dtype=torch.float) + score_pred - score_y
+    return loss/pixel_count
 
 def multi_scale_cross_entropy2d(
     input, target, weight=None, size_average=True, scale_weight=None
