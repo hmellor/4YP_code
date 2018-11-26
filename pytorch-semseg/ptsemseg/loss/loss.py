@@ -50,20 +50,24 @@ def macro_average(input, target):
     prediction = prediction.view(-1)
     input = input.transpose(1, 2).transpose(2, 3).contiguous().view(-1, c)
     target = target.view(-1)
-    gt_class = torch.max(target)
-    total = prediction.numel()
-    print(torch.min(target), torch.max(target))
-    print(torch.min(prediction), torch.max(prediction))
-    print('input: ', input.size(), ', target: ', target.size(), ', prediction: ', prediction.size())
+    input1 = input.clone()
+    macro = torch.zeros([c])
 
     loss = 0
     for i in range(c):
         tar_class = torch.eq(target.float(), i)
         pred_class = torch.eq(prediction.float(), i)
         incorrect = torch.ne(pred_class, tar_class)
-        incorrect_num = torch.sum(incorrect)
-        incorrect_frac = incorrect_num.float() / total
-        loss += incorrect_frac
+        input1[:,i] += incorrect.float()/c
+        macro[i] = torch.sum(incorrect.float())/pixel_count
+
+    y_star = torch.argmax(input1, 1)
+    delta = torch.mean(macro)
+
+    score_y = torch.sum(input.gather(1, target.unsqueeze(1)))
+    score_y_star = torch.sum(input.gather(1, y_star.unsqueeze(1)))
+
+    loss = score_y_star - score_y + delta
     return loss
 
 def micro_average(input, target):

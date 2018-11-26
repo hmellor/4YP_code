@@ -160,8 +160,8 @@ def train(cfg, writer, logger_old, run_id):
     best_meaniu = xp.BestMetric(tag='val-best', name='meaniu')
 
     xp.plotter.set_win_opts(name="loss", opts={'title': 'Loss'})
-    xp.plotter.set_win_opts(name="acc", opts={'title': 'Overall Accuracy'})
-    xp.plotter.set_win_opts(name="acccls", opts={'title': 'Mean Accuracy'})
+    xp.plotter.set_win_opts(name="acc", opts={'title': 'Micro-Average'})
+    xp.plotter.set_win_opts(name="acccls", opts={'title': 'Macro-Average'})
     xp.plotter.set_win_opts(name="fwavacc", opts={'title': 'FreqW Accuracy'})
     xp.plotter.set_win_opts(name="meaniu", opts={'title': 'Mean IoU'})
 

@@ -19,6 +19,6 @@ training:
         weight_decay: 5.0e-4 # or 0.0625
         momentum: 0.9
     loss:
-        name: 'macro_average'
+        name: 'micro_average'
     lr_schedule:
     resume: #runs/config/80202/fcn8s_pascal.pkl
