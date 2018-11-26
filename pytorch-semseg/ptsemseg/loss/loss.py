@@ -52,7 +52,7 @@ def macro_average(input, target):
     input = input.transpose(1, 2).transpose(2, 3).contiguous().view(-1, c)
     target = target.view(-1)
     input1 = input.clone()
-    macro = torch.zeros([c])
+    macro = torch.zeros([c], device=input.device)
 
     loss = 0
     for i in range(c):
@@ -63,7 +63,7 @@ def macro_average(input, target):
         macro[i] = torch.sum(incorrect.float())/pixel_count
 
     y_star = torch.argmax(input1, 1)
-    delta = torch.mean(macro, device=input.device)
+    delta = torch.mean(macro)
 
     score_y = torch.sum(input.gather(1, target.unsqueeze(1)))
     score_y_star = torch.sum(input.gather(1, y_star.unsqueeze(1)))
