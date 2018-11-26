@@ -46,6 +46,7 @@ def macro_average(input, target):
     elif h != ht and w != wt:
         raise Exception("Only support upsampling")
 
+    pixel_count = nt*ht*wt
     prediction = input.data.max(1)[1]
     prediction = prediction.view(-1)
     input = input.transpose(1, 2).transpose(2, 3).contiguous().view(-1, c)
