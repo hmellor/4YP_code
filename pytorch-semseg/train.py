@@ -40,7 +40,7 @@ def flatten(d, parent_key='', sep='_'):
             items.append((new_key, v))
     return dict(items)
 
-def train(cfg, writer, logger_old, run_id):
+def train(cfg, writer, logger_old, name):
 
     # Setup seeds
     torch.manual_seed(cfg.get('seed', 1337))
@@ -134,7 +134,7 @@ def train(cfg, writer, logger_old, run_id):
     flag = True
 
     # Prepare logging
-    xp_name = cfg['model']['arch'] + '_' + str(run_id)
+    xp_name = cfg['model']['arch'] + '_' + name
     xp=logger.Experiment(xp_name,
                          use_visdom=True, visdom_opts={'server': 'http://localhost',
                          'port': 8098}, time_indexing=False, xlabel='Epoch')
@@ -282,7 +282,7 @@ def train(cfg, writer, logger_old, run_id):
                 best_meaniu.update(xp.meaniu_val).log()
 
                 visdir = os.path.join('runs', os.path.basename(args.config)[:-4],
-                                      str(run_id), '{}.json'.format(xp_name))
+                                      name, 'plots.json')
                 xp.to_json(visdir)
 
                 val_loss_meter.reset()
@@ -311,13 +311,20 @@ def train(cfg, writer, logger_old, run_id):
                 break
 
 if __name__ == "__main__":
+    run_id = random.randint(1, 100000)
     parser = argparse.ArgumentParser(description="config")
     parser.add_argument(
         "--config",
         nargs="?",
         type=str,
-        default="configs/fcn8s_pascal.yml",
         help="Configuration file to use"
+    )
+    parser.add_argument(
+        "--name",
+        nargs="?",
+        type=str,
+        default=str(run_id),
+        help="Name of the experiment"
     )
 
     args = parser.parse_args()
@@ -325,8 +332,7 @@ if __name__ == "__main__":
     with open(args.config) as fp:
         cfg = yaml.load(fp)
 
-    run_id = random.randint(1, 100000)
-    logdir = os.path.join('runs', os.path.basename(args.config)[:-4], str(run_id))
+    logdir = os.path.join('runs', os.path.basename(args.config)[:-4], args.name)
     writer = SummaryWriter(log_dir=logdir)
 
     print('RUNDIR: {}'.format(logdir))
@@ -335,9 +341,4 @@ if __name__ == "__main__":
     logger_old = get_logger(logdir)
     logger_old.info('Let the games begin')
 
-    train(cfg, writer, logger_old, run_id)
-
-"""Leave here for debugging
-print("pred: ", np.unique(pred, return_counts=True))
-print("outputs: ", np.unique(outputs, return_counts=True))
-"""
+    train(cfg, writer, logger_old, args.name)
