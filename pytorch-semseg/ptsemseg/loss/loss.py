@@ -54,12 +54,12 @@ def macro_average(input, target):
     macro = torch.zeros([c], device=input.device)
 
     loss = 0
-    for i in range(c):
+    for i in torch.unique(target):
         tar_class = torch.eq(target.float(), i)
         pred_class = torch.eq(prediction.float(), i)
         incorrect = torch.ne(pred_class, tar_class)
-        input1[:,i] += incorrect.float()/c
-        macro[i] = torch.sum(incorrect.float())/pixel_count
+        input1[:,i] += incorrect.float()/torch.unique(target).size()
+        macro[i] = torch.sum(incorrect.float())/torch.sum(tar_class.float())
 
     y_star = torch.argmax(input1, 1)
     delta = torch.mean(macro)
