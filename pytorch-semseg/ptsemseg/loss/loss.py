@@ -45,30 +45,28 @@ def macro_average(input, target):
     elif h != ht and w != wt:
         raise Exception("Only support upsampling")
 
-    pixel_count = nt*ht*wt
-    prediction = input.data.max(1)[1]
-    prediction = prediction.view(-1)
+    # Reshape to nxc and nx1 respectively
     input = input.transpose(1, 2).transpose(2, 3).contiguous().view(-1, c)
     target = target.view(-1)
-    input1 = input.clone()
-    macro = torch.zeros([c], device=input.device)
-
-    loss = 0
-    for i in range(c):
-        tar_class = torch.eq(target.float(), i)
-        pred_class = torch.eq(prediction.float(), i)
-        incorrect = torch.ne(pred_class, tar_class)
-        input1[:,i] += incorrect.float()/c
-        macro[i] = torch.sum(incorrect.float())/pixel_count
-
-    y_star = torch.argmax(input1, 1)
-    delta = torch.mean(macro)
-
+    # Initiualise new variables
+    p, _ = input.size()
+    delta = torch.ones_like(input)
+    arange = torch.arange(p, device=input.device)
+    # Calculate delta
+    delta[arange, target] -= 1
+    unique = torch.unique(target)
+    for k in unique:
+        delta[target==k,:] /= torch.sum(target==k).float() * unique.size(0)
+    # Add delta to input
+    input += delta
+    # Evaluate optimal prediction
+    pred = torch.argmax(input, 1)
+    # Evaluate scores for ground truth and prediction
     score_y = torch.sum(input.gather(1, target.unsqueeze(1)))
-    score_y_star = torch.sum(input.gather(1, y_star.unsqueeze(1)))
-
-    loss = score_y_star - score_y + delta
-    return loss
+    score_pred_delta = torch.sum(input.gather(1, pred.unsqueeze(1)))
+    # Evaluate total loss
+    loss = score_pred_delta - score_y
+    return loss/pixel_count
 
 def micro_average(input, target):
     n, c, h, w = input.size()
@@ -90,7 +88,7 @@ def micro_average(input, target):
     input = input.transpose(1, 2).transpose(2, 3).contiguous().view(-1, c)
     target = target.view(-1)
 
-    # Initialize new variables
+    # Initialise new variables
     pixel_count = nt*ht*wt
     pred = torch.zeros_like(target)
     arange = torch.arange(pixel_count, device=input.device)
