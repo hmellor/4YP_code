@@ -134,7 +134,7 @@ def train(cfg, writer, logger_old, name):
     flag = True
 
     # Prepare logging
-    xp_name = cfg['model']['arch'] + '_' + name
+    xp_name = cfg['model']['arch'] + '_' + cfg['training']['loss']['name'] + name
     xp=logger.Experiment(xp_name,
                          use_visdom=True, visdom_opts={'server': 'http://localhost',
                          'port': 8098}, time_indexing=False, xlabel='Epoch')
@@ -338,7 +338,7 @@ if __name__ == "__main__":
 
     logdir = os.path.join(
         'runs',
-        "{}_{}".format(cfg['model']['arch'],cfg['training']['loss']['name']),
+        cfg['model']['arch'] + '_' + cfg['training']['loss']['name'],
         args.name
     )
     writer = SummaryWriter(log_dir=logdir)
