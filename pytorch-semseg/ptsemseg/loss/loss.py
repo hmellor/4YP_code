@@ -66,7 +66,7 @@ def macro_average(input, target):
     score_pred_delta = torch.sum(input.gather(1, pred.unsqueeze(1)))
     # Evaluate total loss
     loss = score_pred_delta - score_y
-    return loss/pixel_count
+    return loss
 
 def micro_average(input, target):
     n, c, h, w = input.size()
