@@ -281,8 +281,12 @@ def train(cfg, writer, logger_old, name):
                 best_fwavacc.update(xp.fwavacc_val).log()
                 best_meaniu.update(xp.meaniu_val).log()
 
-                visdir = os.path.join('runs', os.path.basename(args.config)[:-4],
-                                      name, 'plots.json')
+                visdir = os.path.join(
+                    'runs',
+                    "{}_{}".format(cfg['model']['arch'],cfg['training']['loss']['name']),
+                    name,
+                    'plots.json'
+                )
                 xp.to_json(visdir)
 
                 val_loss_meter.reset()
