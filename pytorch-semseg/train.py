@@ -332,7 +332,11 @@ if __name__ == "__main__":
     with open(args.config) as fp:
         cfg = yaml.load(fp)
 
-    logdir = os.path.join('runs', os.path.basename(args.config)[:-4], args.name)
+    logdir = os.path.join(
+        'runs',
+        "{}_{}".format(cfg['model']['arch'],cfg['training']['loss']['name']),
+        args.name
+    )
     writer = SummaryWriter(log_dir=logdir)
 
     print('RUNDIR: {}'.format(logdir))
