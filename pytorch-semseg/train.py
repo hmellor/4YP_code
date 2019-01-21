@@ -134,7 +134,7 @@ def train(cfg, writer, logger_old, name):
     flag = True
 
     # Prepare logging
-    xp_name = cfg['model']['arch'] + '_' + cfg['training']['loss']['name'] + name
+    xp_name = cfg['model']['arch']+'_'+cfg['training']['loss']['name']+'_'+name
     xp=logger.Experiment(xp_name,
                          use_visdom=True, visdom_opts={'server': 'http://localhost',
                          'port': 8098}, time_indexing=False, xlabel='Epoch')
