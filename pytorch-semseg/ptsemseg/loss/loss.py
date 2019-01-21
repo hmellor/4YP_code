@@ -58,7 +58,7 @@ def macro_average(input, target):
     for k in unique:
         delta[target==k,:] /= torch.sum(target==k).float() * unique.size(0)
     # Add delta to input
-    input += delta
+    input = input/p + delta
     # Evaluate optimal prediction
     pred = torch.argmax(input, 1)
     # Evaluate scores for ground truth and prediction
