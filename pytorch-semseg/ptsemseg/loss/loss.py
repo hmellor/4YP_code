@@ -29,7 +29,27 @@ def cross_entropy2d(input, target, weight=None, size_average=True):
     )
     return loss
 
-def macro_average(input, target):
+def zehan_iou(input, target, names):
+    c, n, h, w = input.size()
+    nt, ht, wt = target.size()
+
+    # Handle inconsistent size between input and target
+    if h > ht and w > wt:  # upsample labels
+        print('resizing, prediction too large')
+        target = target.unsequeeze(1)
+        target = F.upsample(target, size=(h, w), mode="nearest")
+        target = target.sequeeze(1)
+    elif h < ht and w < wt:  # upsample images
+        print('resizing, prediction too small')
+        input = F.upsample(input, size=(ht, wt), mode="bilinear")
+    elif h != ht and w != wt:
+        raise Exception("Only support upsampling")
+
+    print("Sample names: {}\nNames type: {}".format(names, type(names)))
+    raise NotImplementedError("zehan_iou is not finished yet")
+    return loss
+
+def macro_average(input, target, **kwargs):
     n, c, h, w = input.size()
     nt, ht, wt = target.size()
 
@@ -68,7 +88,7 @@ def macro_average(input, target):
     loss = score_pred_delta - score_y
     return loss
 
-def micro_average(input, target):
+def micro_average(input, target, **kwargs):
     n, c, h, w = input.size()
     nt, ht, wt = target.size()
 

@@ -168,7 +168,7 @@ def train(cfg, writer, logger_old, name):
     it_per_step = cfg['training']['acc_batch_size']
     eff_batch_size = cfg['training']['batch_size'] * it_per_step
     while i <= train_len*(cfg['training']['epochs']) and flag:
-        for (images, labels) in trainloader:
+        for (images, labels, names) in trainloader:
             i += 1
             j += 1
             start_ts = time.time()
@@ -178,7 +178,7 @@ def train(cfg, writer, logger_old, name):
             labels = labels.to(device)
 
             outputs = model(images)
-            loss = loss_fn(input=outputs, target=labels)
+            loss = loss_fn(input=outputs, target=labels, names=names)
 
             # accumulate train metrics during train
             pred = outputs.data.max(1)[1].cpu().numpy()
@@ -227,7 +227,7 @@ def train(cfg, writer, logger_old, name):
                         labels_val = labels_val.to(device)
 
                         outputs = model(images_val)
-                        val_loss = loss_fn(input=outputs, target=labels_val)
+                        val_loss = loss_fn(input=outputs, target=labels_val, names=names)
                         pred = outputs.data.max(1)[1].cpu().numpy()
                         gt = labels_val.data.cpu().numpy()
 

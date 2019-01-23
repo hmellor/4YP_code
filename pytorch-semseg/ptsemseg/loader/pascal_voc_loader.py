@@ -101,7 +101,7 @@ class pascalVOCLoader(data.Dataset):
             im, lbl = self.augmentations(im, lbl)
         if self.is_transform:
             im, lbl = self.transform(im, lbl)
-        return im, lbl
+        return im, lbl, im_name
 
     def transform(self, img, lbl):
         if self.img_size == ('same', 'same'):
