@@ -13,74 +13,68 @@ import matplotlib.pyplot as plt
 import torch
 import time
 
-## Pre processing steop
+## Pre processing step
 t = time.time()
 # load the image and convert it to a floating point data type
-image = img_as_float(io.imread('2007_000039.png'))
-target = io.imread('2007_000039_encoded.png')
-# Perform SLIC and convert to torch
+image = img_as_float(io.imread('2007_000039.jpg'))
+# Perform SLIC segmentation
 numSegments = 10
 segments = slic(image, n_segments = numSegments, sigma = 5)
+
+# show the output of SLIC
+fig = plt.figure("Superpixels -- %d segments" % (numSegments))
+ax = fig.add_subplot(1, 1, 1)
+ax.imshow(mark_boundaries(image, segments))
+plt.axis("off")
+plt.show()
+
+# Convery to torch and save for later
 segments = torch.from_numpy(segments)
-target = torch.from_numpy(target) / 5 # Scaled for more readable prints
-# Calculate mean colour for each cluster
-mask = torch.zeros_like(segments, dtype=torch.uint8)
-super_pixels = torch.zeros(segments.unique().numel())
-for idx in range(super_pixels.numel()):
-    mask[:,:] = 0
-    mask[segments == idx] = 1
-    super_pixels[idx] = target[mask==1].float().mean()
-# Store ground truth superpixel data for later
-torch.save(super_pixels, 'supx')
-torch.save(segments, 'segments')
+torch.save(segments, '2007_000039.pt')
 print("Single image pre-processing time:", time.time()-t)
+
 
 ## Loss function
 # Delete tensors to ensure they are being created correctly in loss
-del mask
-del super_pixels
+del image
 del segments
+
+###############################################################################
+## Generating scores and target which would be input to loss function
+input = torch.rand(2, 21, 375, 500, dtype=torch.float)
+target = torch.from_numpy(
+        io.imread('2007_000039_encoded.png')
+        ).unsqueeze_(0).long()
+target = torch.cat((target,target))
+names = ('2007_000039','2007_000039')
+###############################################################################
 t = time.time()
-super_pixels = torch.load('supx')
-segments = torch.load('segments')
-mask = torch.zeros_like(segments, dtype=torch.uint8)
-super_z = torch.zeros((super_pixels.numel(),5), dtype=torch.float)
+
+# Extract size data from input and target
+n, c, h, w = input.size()
+nt, ht, wt = target.size()
+# Load the pre-processed segmentation
+segments = torch.zeros(n,h,w)
+for idx in range(n):
+    segments[idx,:,:] = torch.load('{}.pt'.format(names[idx]))
+# Initialise superpixel tensors
+input_s  = torch.zeros((n*segments.unique().numel(),c))
+target_s = torch.zeros(nt*segments.unique().numel())
+# Some prints for sanity checks
+print("Input shape:\n{}\nTarget shape:\n{}".format(input.shape, target.shape)) 
+print("Input super-pixel shape:\n{}\nTarget super-pixel shape:\n{}".format(input_s.shape, target_s.shape))
+print("Segments shape:\n{}".format(segments.shape))
+# Iterate through all the images
+for img in range(n):
+    # Iterate through all the clusters
+    for idx in range(segments[img,:,:].unique().numel()):
+        # First take slices to select image, then use segments slice as mask, then 2D mode for majority class
+        target_s[(img*segments.unique().numel())+idx] = target[img,:,:][segments[img,:,:]==idx].mode()[0].mode()[0]
+        # Iterate through all the classes
+        for k in range(c):
+            # Same process as before but also iterating through classes and taking mean because these are scores
+            input_s[(img*segments.unique().numel())+idx,k] = input[img,k,:,:][segments[img,:,:]==idx].mean()
 
 
-z = torch.randint(0,4,(mask.shape[0],mask.shape[1],5))
-
-print("mask shape:\n{}\nz shape:\n{}".format(mask.shape, z.shape)) 
-print("target shape:\n{}\nunique in target:\n{}".format(target.shape, target.unique()))
-print("super_pixels:\n{}\nsuper_z:\n{}".format(super_pixels.shape, super_z))
-
-for k in range(5):
-    z_slice = z.select(2,k)
-    print("k:\n{}\nz_slice shape:\n{}".format(k, z_slice.shape))
-    for idx in range(super_pixels.numel()):
-        mask[:,:] = 0
-        mask[segments == idx] = 1
-        print("[{},{}]".format(idx, k))
-        print(z_slice[mask==1].mean())
-        super_z[idx,k] = z_slice[mask==1].mean()
-
-
-print("super_pixels:\n{}\n super_z:\n{}".format(super_pixels, super_z))
+print("Input super-pixels:\n{}\nTarget super-pixels:\n{}".format(input_s, target_s))
 print("Loss eval time for preprocessed image:", time.time()-t)
-
-#for k in image.unique():
-#    print(k)
-
-   # print("Segment: {0}".format(idx))
-    #print(torch.mean(image[mask]))
-#    fig = plt.figure("Segment {idx}")
-#    ax = fig.add_subplot(1, 1, 1)
-#    ax.imshow((image[:,:,1]*mask.double()).numpy())
-#    plt.axis("off")
-#    plt.show()
-        
-#        print(torch.mean(image_wrong[mask]))
-#        fig = plt.figure("Segment {idx}")
-#        ax = fig.add_subplot(1, 1, 1)
-#        ax.imshow((image_wrong*mask.double()).numpy())
-#        plt.axis("off")
-#        plt.show()
