@@ -55,25 +55,32 @@ n, c, h, w = input.size()
 nt, ht, wt = target.size()
 # Load the pre-processed segmentation
 segments = torch.zeros(n,h,w)
+segments_u = 0
 for idx in range(n):
     segments[idx,:,:] = torch.load('{}.pt'.format(names[idx]))
+    segments_u += segments[idx,:,:].unique().numel()
+    print(segments_u)
 # Initialise superpixel tensors
-input_s  = torch.zeros((n*segments.unique().numel(),c))
-target_s = torch.zeros(nt*segments.unique().numel())
+input_s  = torch.zeros(segments_u,c)
+target_s = torch.zeros(segments_u)
 # Some prints for sanity checks
 print("Input shape:\n{}\nTarget shape:\n{}".format(input.shape, target.shape)) 
 print("Input super-pixel shape:\n{}\nTarget super-pixel shape:\n{}".format(input_s.shape, target_s.shape))
 print("Segments shape:\n{}".format(segments.shape))
 # Iterate through all the images
 for img in range(n):
+    # Define variable for number of unique segments for current image
+    img_seg_u = segments[img,:,:].unique().numel()
     # Iterate through all the clusters
-    for idx in range(segments[img,:,:].unique().numel()):
+    for idx in range(img_seg_u):
+        # Define mask for cluster idx
+        mask = segments[img,:,:]==idx
         # First take slices to select image, then use segments slice as mask, then 2D mode for majority class
-        target_s[(img*segments.unique().numel())+idx] = target[img,:,:][segments[img,:,:]==idx].mode()[0].mode()[0]
+        target_s[(img*img_seg_u)+idx] = target[img,:,:][mask].mode()[0].mode()[0]
         # Iterate through all the classes
         for k in range(c):
             # Same process as before but also iterating through classes and taking mean because these are scores
-            input_s[(img*segments.unique().numel())+idx,k] = input[img,k,:,:][segments[img,:,:]==idx].mean()
+            input_s[(img*img_seg_u)+idx,k] = input[img,k,:,:][mask].mean()
 
 
 print("Input super-pixels:\n{}\nTarget super-pixels:\n{}".format(input_s, target_s))
