@@ -18,7 +18,7 @@ t = time.time()
 # load the image and convert it to a floating point data type
 image = img_as_float(io.imread('2007_000039.jpg'))
 # Perform SLIC segmentation
-numSegments = 10
+numSegments = 100
 segments = slic(image, n_segments = numSegments, sigma = 5)
 
 # show the output of SLIC
@@ -41,12 +41,12 @@ del segments
 
 ###############################################################################
 ## Generating scores and target which would be input to loss function
-input = torch.rand(2, 21, 375, 500, dtype=torch.float)
+input = torch.rand(1, 21, 375, 500, dtype=torch.float)
 target = torch.from_numpy(
         io.imread('2007_000039_encoded.png')
         ).unsqueeze_(0).long()
-target = torch.cat((target,target))
-names = ('2007_000039','2007_000039')
+#target = torch.cat((target,target))
+names = ('2007_000039',)
 ###############################################################################
 t = time.time()
 
@@ -75,13 +75,42 @@ for img in range(n):
     for idx in range(img_seg_u):
         # Define mask for cluster idx
         mask = segments[img,:,:]==idx
-        # First take slices to select image, then use segments slice as mask, then 2D mode for majority class
+        # First take slices to select image, then apply mask, then 2D mode for majority class
         target_s[(img*img_seg_u)+idx] = target[img,:,:][mask].mode()[0].mode()[0]
         # Iterate through all the classes
         for k in range(c):
             # Same process as before but also iterating through classes and taking mean because these are scores
             input_s[(img*img_seg_u)+idx,k] = input[img,k,:,:][mask].mean()
-
-
-print("Input super-pixels:\n{}\nTarget super-pixels:\n{}".format(input_s, target_s))
+# Calculate the score for the superpixels both being and not being in the class
+score_not_class = input_s[:,torch.arange(0,c)[torch.arange(0,c)!=max(target_s).long()]].exp().sum(1).log()
+score_class = input_s[:,max(target_s).long()]
+theta = torch.stack([score_not_class,score_class])
+# Zehan's algorithm
+h=torch.zeros(1)
+# Sort all scores that are supposed to be background and sum them cumulatively
+theta_tilde = torch.gather(theta, 0,torch.stack([target_s==0,target_s!=0]).long())[0,:]
+theta_hat = theta_tilde.sort(descending=True)[0].cumsum(dim=0)
+# Iterate through all possible values of U from the min U to all the super-pixels
+for U in torch.arange((target_s!=0).sum(),target_s.numel()).float():
+    print("U: {}".format(U))
+    # Reset I and sigma for the currenc U
+    I=0
+    sigma=0
+    # For all the superpixels that are the class in the ground truth
+    for j in target_s.nonzero():
+        # If including the jth super=pixel will increase the max{S+delta}, include it
+        if score_class[j] >= 1/U:
+            # Add the score and increase the intersection
+            sigma += score_class[j]
+            I += 1
+    
+    sigma += theta_hat[U.int()-(target_s!=0).sum().int()]
+    print(theta_hat[U.int()-(target_s!=0).sum().int()])
+    sigma -= I/U
+    print(sigma, h)
+    if sigma >= h:
+        h = sigma
+h += 1 - torch.gather(theta, 0,torch.stack([target_s==0,target_s!=0]).long())[1,:].sum()
+print("Loss:{}".format(h))
+#print("Input super-pixels:\n{}\nTarget super-pixels:\n{}".format(input_s, target_s))
 print("Loss eval time for preprocessed image:", time.time()-t)
