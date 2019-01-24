@@ -18,7 +18,7 @@ t = time.time()
 # load the image and convert it to a floating point data type
 image = img_as_float(io.imread('2007_000039.jpg'))
 # Perform SLIC segmentation
-numSegments = 100
+numSegments = 10
 segments = slic(image, n_segments = numSegments, sigma = 5)
 
 # show the output of SLIC
@@ -64,9 +64,9 @@ for idx in range(n):
 input_s  = torch.zeros(segments_u,c)
 target_s = torch.zeros(segments_u)
 # Some prints for sanity checks
-print("Input shape:\n{}\nTarget shape:\n{}".format(input.shape, target.shape)) 
-print("Input super-pixel shape:\n{}\nTarget super-pixel shape:\n{}".format(input_s.shape, target_s.shape))
-print("Segments shape:\n{}".format(segments.shape))
+print("Input shape:              {}\nTarget shape:             {}".format(input.shape, target.shape)) 
+print("Input super-pixel shape:  {}\nTarget super-pixel shape: {}".format(input_s.shape, target_s.shape))
+print("Segments shape:           {}".format(segments.shape))
 # Iterate through all the images
 for img in range(n):
     # Define variable for number of unique segments for current image
@@ -85,6 +85,8 @@ for img in range(n):
 score_not_class = input_s[:,torch.arange(0,c)[torch.arange(0,c)!=max(target_s).long()]].exp().sum(1).log()
 score_class = input_s[:,max(target_s).long()]
 theta = torch.stack([score_not_class,score_class])
+print("Scores for class:         {}".format(score_class))
+print("Scores for not class:     {}".format(score_not_class))
 # Zehan's algorithm
 h=torch.zeros(1)
 # Sort all scores that are supposed to be background and sum them cumulatively
@@ -103,13 +105,14 @@ for U in torch.arange((target_s!=0).sum(),target_s.numel()).float():
             # Add the score and increase the intersection
             sigma += score_class[j]
             I += 1
-    
+    print("I: {}".format(I))
     sigma += theta_hat[U.int()-(target_s!=0).sum().int()]
-    print(theta_hat[U.int()-(target_s!=0).sum().int()])
+    print("Theta_hat[U-|y|]: {}".format(theta_hat[U.int()-(target_s!=0).sum().int()]))
     sigma -= I/U
-    print(sigma, h)
+    print("Sigma: {}, h: {}".format(sigma, h))
     if sigma >= h:
         h = sigma
+print("Ground truth score: {}".format(torch.gather(theta, 0,torch.stack([target_s==0,target_s!=0]).long())[1,:]))
 h += 1 - torch.gather(theta, 0,torch.stack([target_s==0,target_s!=0]).long())[1,:].sum()
 print("Loss:{}".format(h))
 #print("Input super-pixels:\n{}\nTarget super-pixels:\n{}".format(input_s, target_s))
