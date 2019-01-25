@@ -13,6 +13,17 @@ import matplotlib.pyplot as plt
 import torch
 import time
 
+## Testing a preprocessed segmentation
+image = img_as_float(io.imread('2007_002099.jpg'))
+segments = torch.load('2007_002099.pt').numpy()
+# show the output of SLIC
+fig = plt.figure("Superpixels --  segments")
+ax = fig.add_subplot(1, 1, 1)
+ax.imshow(mark_boundaries(image, segments))
+plt.axis("off")
+plt.show()
+
+
 ## Pre processing step
 t = time.time()
 # load the image and convert it to a floating point data type
@@ -127,7 +138,6 @@ losses = torch.zeros(0)
 
 for target_s in iter:
     target_s = torch.tensor(target_s)
-    print(target_s)
     # Zehan's algorithm
     h=torch.zeros(1)
     # Sort all scores that are supposed to be background and sum them cumulatively

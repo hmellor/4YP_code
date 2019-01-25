@@ -29,27 +29,41 @@ def cross_entropy2d(input, target, weight=None, size_average=True):
     )
     return loss
 
-def zehan_iou(input, target, names):
-    c, n, h, w = input.size()
-    nt, ht, wt = target.size()
+def zehan_iou(theta, y):
 
-    # Handle inconsistent size between input and target
-    if h > ht and w > wt:  # upsample labels
-        print('resizing, prediction too large')
-        target = target.unsequeeze(1)
-        target = F.upsample(target, size=(h, w), mode="nearest")
-        target = target.sequeeze(1)
-    elif h < ht and w < wt:  # upsample images
-        print('resizing, prediction too small')
-        input = F.upsample(input, size=(ht, wt), mode="bilinear")
-    elif h != ht and w != wt:
-        raise Exception("Only support upsampling")
+    mask_gt = y.ne(0)
+    mask_not_gt = y.eq(0)
 
-    print("Sample names: {}\nNames type: {}".format(names, type(names)))
-    raise NotImplementedError("zehan_iou is not finished yet")
+    n_gt = mask_gt.long().sum()
+
+    # Zehan's algorithm
+    loss = torch.zeros(1)
+    # Sort all scores that are supposed to be background and sum them cumulatively
+    theta_tilde = theta[mask_not_gt].sort(descending=True)[0]
+    theta_hat = theta_tilde.cumsum(0)
+
+    # Iterate through all possible values of U from the min U to all the super-pixels
+    for U in torch.arange(n_gt, n_pixels + 1):
+        # Reset I and sigma for the currenc U
+        I = 0
+        sigma = 0
+
+        # For all the superpixels that are the class in the ground truth
+        for theta_j in theta[mask_gt]:
+            # If including the jth super=pixel will increase the max{S+delta}, include it
+            if theta_j >= 1. / float(U):
+                # Add the score and increase the intersection
+                sigma += theta_j
+                I += 1
+        if U > n_gt:
+            sigma += theta_hat[U - n_gt - 1]
+        sigma -= float(I) / float(U)
+        if sigma >= loss:
+            loss = sigma
+    loss += 1 - theta[mask_gt].sum()
     return loss
 
-def macro_average(input, target, **kwargs):
+def macro_average(input, target):
     n, c, h, w = input.size()
     nt, ht, wt = target.size()
 
@@ -88,7 +102,7 @@ def macro_average(input, target, **kwargs):
     loss = score_pred_delta - score_y
     return loss
 
-def micro_average(input, target, **kwargs):
+def micro_average(input, target):
     n, c, h, w = input.size()
     nt, ht, wt = target.size()
 
