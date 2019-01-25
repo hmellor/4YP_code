@@ -18,7 +18,6 @@ training:
         lr: 1.0e-3
         weight_decay: 0
     loss:
-        name: 'zehan_iou'
-        superpixels: 'True'
+        name: 'macro_average'
     lr_schedule:
-    resume: #runs/config/80202/fcn8s_pascal.pkl
+    resume: runs/alexnet_mi_adam_4_4/mi adam lr=1e-4 wd=1e-4/fcalexnet_pascal_best_model.pkl

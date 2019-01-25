@@ -26,7 +26,7 @@ def get_loss_function(cfg):
     else:
         loss_dict = cfg['training']['loss']
         loss_name = loss_dict['name']
-        loss_params = {k:v for k,v in loss_dict.items() if k != 'name'}
+        loss_params = {k:v for k,v in loss_dict.items() if k != 'name' and k != 'superpixels'}
 
         if loss_name not in key2loss:
             raise NotImplementedError('Loss {} not implemented'.format(loss_name))

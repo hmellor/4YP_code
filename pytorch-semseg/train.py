@@ -27,6 +27,7 @@ from ptsemseg.metrics import runningScore, averageMeter
 from ptsemseg.augmentations import get_composed_augmentations
 from ptsemseg.schedulers import get_scheduler
 from ptsemseg.optimizers import get_optimizer
+from ptsemseg.superpixels import convert_to_superpixels
 
 from tensorboardX import SummaryWriter
 
@@ -130,7 +131,7 @@ def train(cfg, writer, logger_old, name):
     time_meter = averageMeter()
 
     train_len = t_loader.train_len
-    superpixels = cfg['training']['loss']['superpixels']
+    use_superpixels = cfg['training']['loss']['superpixels']
     best_iou = -100.0
     i = start_iter
     j = 0
@@ -181,7 +182,7 @@ def train(cfg, writer, logger_old, name):
             labels = labels.to(device)
 
             outputs = model(images)
-            if use_super_pixels:
+            if use_superpixels:
                 outputs, labels = convert_to_superpixels(outputs, labels, masks)
             loss = loss_fn(input=outputs, target=labels)
 
@@ -227,11 +228,13 @@ def train(cfg, writer, logger_old, name):
                 optimizer.zero_grad()
                 model.eval()
                 with torch.no_grad():
-                    for i_val, (images_val, labels_val) in tqdm(enumerate(valloader)):
+                    for i_val, (images_val, labels_val, masks_val) in tqdm(enumerate(valloader)):
                         images_val = images_val.to(device)
                         labels_val = labels_val.to(device)
 
                         outputs = model(images_val)
+                        if use_superpixels:
+                            outputs, labels_val = convert_to_superpixels(outputs, labels_val, masks_val)
                         val_loss = loss_fn(input=outputs, target=labels_val)
                         pred = outputs.data.max(1)[1].cpu().numpy()
                         gt = labels_val.data.cpu().numpy()

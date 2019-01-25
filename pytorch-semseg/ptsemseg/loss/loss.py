@@ -29,8 +29,11 @@ def cross_entropy2d(input, target, weight=None, size_average=True):
     )
     return loss
 
-def zehan_iou(theta, y):
-
+def zehan_iou(input, target):
+    y=target
+    n, c = input.size()
+    theta=input[:,max(y).long()]-input[:,torch.arange(0,c)[torch.arange(0,c)!=max(y).long()]].exp().sum(1).log()
+    n_pixels = target.size()[0]
     mask_gt = y.ne(0)
     mask_not_gt = y.eq(0)
 
@@ -43,13 +46,15 @@ def zehan_iou(theta, y):
     theta_hat = theta_tilde.cumsum(0)
 
     # Iterate through all possible values of U from the min U to all the super-pixels
-    for U in torch.arange(n_gt, n_pixels + 1):
+    for U in torch.arange(n_gt, n_pixels + 1, device=input.device):
         # Reset I and sigma for the currenc U
         I = 0
         sigma = 0
-
+        print(theta.size())
+        print(mask_gt.size())
         # For all the superpixels that are the class in the ground truth
         for theta_j in theta[mask_gt]:
+#            print("theta_j:", theta_j, ", 1/U:", 1./float(U))
             # If including the jth super=pixel will increase the max{S+delta}, include it
             if theta_j >= 1. / float(U):
                 # Add the score and increase the intersection

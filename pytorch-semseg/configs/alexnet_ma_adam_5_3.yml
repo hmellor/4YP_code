@@ -15,10 +15,9 @@ training:
     print_interval: 5 # in iterations
     optimizer:
         name: 'adam'
-        lr: 1.0e-3
-        weight_decay: 0
+        lr: 1.0e-5
+        weight_decay: 1.0e-3
     loss:
-        name: 'zehan_iou'
-        superpixels: 'True'
+        name: 'macro_average'
     lr_schedule:
     resume: #runs/config/80202/fcn8s_pascal.pkl
