@@ -76,7 +76,7 @@ class pascalVOCLoader(data.Dataset):
         self.img_size = (
             img_size if isinstance(img_size, tuple) else (img_size, img_size)
         )
-        for split in ["train", "val", "trainval"]:
+        for split in ["train", "val", "trainval", "train_binary", "val_binary"]:
             path = pjoin(self.root, "ImageSets/Segmentation", split + ".txt")
             file_list = tuple(open(path, "r"))
             if split == 'train':
