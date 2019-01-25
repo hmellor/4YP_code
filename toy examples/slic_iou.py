@@ -86,14 +86,13 @@ t = time.time()
 # Calculate the score for the superpixels both being and not being in the class
 score_not_class = input_s[:,torch.arange(0,c)[torch.arange(0,c)!=max(target_s).long()]].exp().sum(1).log()
 score_class = input_s[:,max(target_s).long()]
-theta = torch.stack([score_not_class,score_class])
-print("Scores for class:         {}".format(score_class))
-print("Scores for not class:     {}".format(score_not_class))
+theta = score_class - score_not_class
+print("Theta:                    {}".format(score_class))
 # Zehan's algorithm
 h=torch.zeros(1)
 # Sort all scores that are supposed to be background and sum them cumulatively
-theta_tilde = torch.gather(theta, 0,torch.stack([target_s==0,target_s!=0]).long())[0,:]
-theta_hat = theta_tilde.sort(descending=True)[0].cumsum(dim=0)
+theta_tilde = theta[target_s==0].sort(descending=True)[0]
+theta_hat = theta_tilde.cumsum(0)
 # Iterate through all possible values of U from the min U to all the super-pixels
 for U in torch.arange((target_s!=0).sum(),target_s.numel()).float():
     print("U: {}".format(U))
@@ -103,9 +102,9 @@ for U in torch.arange((target_s!=0).sum(),target_s.numel()).float():
     # For all the superpixels that are the class in the ground truth
     for j in target_s.nonzero():
         # If including the jth super=pixel will increase the max{S+delta}, include it
-        if score_class[j] >= 1/U:
+        if theta[j] >= 1/U:
             # Add the score and increase the intersection
-            sigma += score_class[j]
+            sigma += theta[j]
             I += 1
     print("I: {}".format(I))
     sigma += theta_hat[U.int()-(target_s!=0).sum().int()]
@@ -114,8 +113,8 @@ for U in torch.arange((target_s!=0).sum(),target_s.numel()).float():
     print("Sigma: {}, h: {}".format(sigma, h))
     if sigma >= h:
         h = sigma
-print("Ground truth score: {}".format(torch.gather(theta, 0,torch.stack([target_s==0,target_s!=0]).long())[1,:]))
-h += 1 - torch.gather(theta, 0,torch.stack([target_s==0,target_s!=0]).long())[1,:].sum()
+print("Ground truth score: {}".format(theta[target_s!=0]))
+h += 1 - theta[target_s!=0].sum()
 print("Loss:{}".format(h))
 #print("Input super-pixels:\n{}\nTarget super-pixels:\n{}".format(input_s, target_s))
 print("\nLoss eval time for super-pixels: {}\n".format(time.time()-t))
