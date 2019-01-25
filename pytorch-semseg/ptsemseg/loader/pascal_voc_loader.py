@@ -59,6 +59,7 @@ class pascalVOCLoader(data.Dataset):
         self,
         root,
         split="train_aug",
+        superpixels=False,
         is_transform=False,
         img_size=512,
         augmentations=None,
@@ -66,6 +67,7 @@ class pascalVOCLoader(data.Dataset):
     ):
         self.root = os.path.expanduser(root)
         self.split = split
+        self.superpixels = superpixels
         self.is_transform = is_transform
         self.augmentations = augmentations
         self.img_norm = img_norm
@@ -101,7 +103,12 @@ class pascalVOCLoader(data.Dataset):
             im, lbl = self.augmentations(im, lbl)
         if self.is_transform:
             im, lbl = self.transform(im, lbl)
-        return im, lbl, im_name
+        if self.superpixels:
+            mask_path = pjoin(self.root, "SegmentationClass/SuperPixels", im_name + ".pt")
+            mask = torch.load(mask_path)
+            return im, lbl, mask
+        else:
+            return im, lbl
 
     def transform(self, img, lbl):
         if self.img_size == ('same', 'same'):
