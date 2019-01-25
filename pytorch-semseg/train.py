@@ -62,6 +62,7 @@ def train(cfg, writer, logger_old, name):
         data_path,
         is_transform=True,
         split=cfg['data']['train_split'],
+        superpixels=cfg['training']['loss']['superpixels'],
         img_size=(cfg['data']['img_rows'], cfg['data']['img_cols']),
         augmentations=data_aug)
 
@@ -69,6 +70,7 @@ def train(cfg, writer, logger_old, name):
         data_path,
         is_transform=True,
         split=cfg['data']['val_split'],
+        superpixels=cfg['training']['loss']['superpixels'],
         img_size=(cfg['data']['img_rows'], cfg['data']['img_cols']),)
 
     n_classes = t_loader.n_classes
@@ -128,6 +130,7 @@ def train(cfg, writer, logger_old, name):
     time_meter = averageMeter()
 
     train_len = t_loader.train_len
+    superpixels = cfg['training']['loss']['superpixels']
     best_iou = -100.0
     i = start_iter
     j = 0
@@ -168,7 +171,7 @@ def train(cfg, writer, logger_old, name):
     it_per_step = cfg['training']['acc_batch_size']
     eff_batch_size = cfg['training']['batch_size'] * it_per_step
     while i <= train_len*(cfg['training']['epochs']) and flag:
-        for (images, labels) in trainloader:
+        for (images, labels, masks) in trainloader:
             i += 1
             j += 1
             start_ts = time.time()
@@ -178,6 +181,8 @@ def train(cfg, writer, logger_old, name):
             labels = labels.to(device)
 
             outputs = model(images)
+            if use_super_pixels:
+                outputs, labels = convert_to_superpixels(outputs, labels, masks)
             loss = loss_fn(input=outputs, target=labels)
 
             # accumulate train metrics during train

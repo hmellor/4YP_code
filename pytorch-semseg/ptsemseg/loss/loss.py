@@ -29,6 +29,40 @@ def cross_entropy2d(input, target, weight=None, size_average=True):
     )
     return loss
 
+def zehan_iou(theta, y):
+
+    mask_gt = y.ne(0)
+    mask_not_gt = y.eq(0)
+
+    n_gt = mask_gt.long().sum()
+
+    # Zehan's algorithm
+    loss = torch.zeros(1)
+    # Sort all scores that are supposed to be background and sum them cumulatively
+    theta_tilde = theta[mask_not_gt].sort(descending=True)[0]
+    theta_hat = theta_tilde.cumsum(0)
+
+    # Iterate through all possible values of U from the min U to all the super-pixels
+    for U in torch.arange(n_gt, n_pixels + 1):
+        # Reset I and sigma for the currenc U
+        I = 0
+        sigma = 0
+
+        # For all the superpixels that are the class in the ground truth
+        for theta_j in theta[mask_gt]:
+            # If including the jth super=pixel will increase the max{S+delta}, include it
+            if theta_j >= 1. / float(U):
+                # Add the score and increase the intersection
+                sigma += theta_j
+                I += 1
+        if U > n_gt:
+            sigma += theta_hat[U - n_gt - 1]
+        sigma -= float(I) / float(U)
+        if sigma >= loss:
+            loss = sigma
+    loss += 1 - theta[mask_gt].sum()
+    return loss
+
 def macro_average(input, target):
     n, c, h, w = input.size()
     nt, ht, wt = target.size()
