@@ -4,45 +4,40 @@ from tqdm import tqdm
 from skimage import io
 from skimage.util import img_as_float
 from skimage.segmentation import slic
+import time
 
 def convert_to_superpixels(input, target, mask):
+    print("NEW IMAGE")
+    t=time.time()
     # Extract size data from input and target
     images, c, h, w = input.size()
     nt, ht, wt = target.size()
-#    print("input", input.size())
-#    print("target", target.size())
-#    print("mask", mask.size())
     # Load the pre-processed segmentation
     segments_u = 0
     for image in range(images):
         segments_u += mask[image,:,:].unique().numel()
-#        print("Total superpixels:           {}".format(segments_u))
     # Initialise superpixel tensors
     input_s  = torch.zeros((segments_u,c), device=input.device)
     target_s = torch.zeros((segments_u), device=target.device)
-    # Some prints for sanity checks
-#    print("Input shape:              {}\nTarget shape:             {}".format(input.shape, target.shape))
-#    print("Input super-pixel shape:  {}\nTarget super-pixel shape: {}".format(input_s.shape, target_s.shape))
-#    print("superpixels shape:           {}".format(superpixels.shape))
+    classes = torch.arange(c, device=input.device)
     # Iterate through all the images
-#    print("Number of superpixels:", segments_u)
-#    print("Superpixel target values:", target_s.unique())
+    print("Time to initialise variables (conversion):", time.time()-t)
+    t=time.time()
     for img in range(images):
         # Define variable for number of unique superpixels for current image
-        img_seg_u = mask[img,:,:].unique().numel()
-#        print("Superpixels in this image:", img_seg_u)
+        img_superpixels = mask[img,:,:].unique().numel()
+        img_offset = img*img_superpixels
         # Iterate through all the clusters
-        for idx in range(img_seg_u):
+        t1=time.time()
+        for idx in range(img_superpixels):
             # Define mask for cluster idx
             segment_mask = mask[img,:,:]==idx
             # First take slices to select image, then apply mask, then 2D mode for majority class
-            target_s[(img*img_seg_u)+idx] = target[img,:,:][segment_mask].mode()[0].mode()[0]
-#            print(target[img,:,:][segment_mask].mode()[0].unique())
-            # Iterate through all the classes
-            for k in range(c):
-                # Same process as before but also iterating through classes and taking mean because these are scores
-                input_s[(img*img_seg_u)+idx,k] = input[img,k,:,:][segment_mask].mean()
-#    print("Superpixel target values:", target_s.unique())
+            target_s[img_offset+idx] = target[img,:,:][segment_mask].mode()[0].mode()[0]
+            # Same as before but also iterating through classes and taking mean because these are scores
+            input_s[img_offset+idx,classes] = input[img,classes,:,:][:,segment_mask].mean()
+        print("Inner loop time (conversion)", time.time()-t1)
+    print("Outer loop time (conversion)", time.time()-t)
     return input_s, target_s
 
 def create_masks():
