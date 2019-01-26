@@ -30,12 +30,13 @@ def cross_entropy2d(input, target, weight=None, size_average=True):
     return loss
 
 def zehan_iou(input, target):
-    y=target
-    n, c = input.size()
-    theta=input[:,max(y).long()]-input[:,torch.arange(0,c)[torch.arange(0,c)!=max(y).long()]].exp().sum(1).log()
-    n_pixels = target.size()[0]
-    mask_gt = y.ne(0)
-    mask_not_gt = y.eq(0)
+    n_pixels, c = input.size()
+    all_classes = torch.arange(0,c)
+    gt_class = all_classes.max().long()
+    theta=input[:,gt_class]-input[:,all_classes[all_classes.ne(gt_class)]].exp().sum(1).log()
+
+    mask_gt = target.ne(0)
+    mask_not_gt = target.eq(0)
 
     n_gt = mask_gt.long().sum()
 

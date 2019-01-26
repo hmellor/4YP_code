@@ -23,7 +23,7 @@ for split in ["train", "val"]:
     binary_path = pjoin("../datasets/VOCdevkit/VOC2011/ImageSets/Segmentation", split + "_binary.txt")
     exists = os.path.isfile(binary_path)
     if exists:
-        print("Segmentation file {}.txt already exists".format(split))
+        print("Segmentation file {}_binary.txt already exists".format(split))
         break
     else:
         print("Generating binary {} split".format(split))
@@ -34,5 +34,3 @@ for split in ["train", "val"]:
                 target = m.imread(target_path)
                 if np.unique(target).size <= 2:
                     file.write(ii + "\n")
-            
-        

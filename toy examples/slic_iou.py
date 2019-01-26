@@ -130,36 +130,3 @@ h += 1 - theta[target_s!=0].sum()
 print("Loss:{}".format(h))
 #print("Input super-pixels:\n{}\nTarget super-pixels:\n{}".format(input_s, target_s))
 print("\nLoss eval time for super-pixels: {}\n".format(time.time()-t))
-
-import itertools
-iter = itertools.product(target_s.unique(), repeat=target_s.size()[0])
-
-losses = torch.zeros(0)
-
-for target_s in iter:
-    target_s = torch.tensor(target_s)
-    # Zehan's algorithm
-    h=torch.zeros(1)
-    # Sort all scores that are supposed to be background and sum them cumulatively
-    theta_tilde = theta[target_s==0].sort(descending=True)[0]
-    theta_hat = theta_tilde.cumsum(0)
-    # Iterate through all possible values of U from the min U to all the super-pixels
-    for U in torch.arange((target_s!=0).sum(),target_s.numel()).float():
-        # Reset I and sigma for the currenc U
-        I=0
-        sigma=0
-        # For all the superpixels that are the class in the ground truth
-        for j in target_s.nonzero():
-            # If including the jth super=pixel will increase the max{S+delta}, include it
-            if theta[j] >= 1/U:
-                # Add the score and increase the intersection
-                sigma += theta[j]
-                I += 1
-        sigma += theta_hat[U.int()-(target_s!=0).sum().int()]
-        sigma -= I/U
-        if sigma >= h:
-            h = sigma
-    h += 1 - theta[target_s!=0].sum()
-    losses = torch.cat((losses, torch.tensor(h)))
-print(losses.max())
-    
