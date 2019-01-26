@@ -105,7 +105,9 @@ class pascalVOCLoader(data.Dataset):
             im, lbl = self.transform(im, lbl)
         if self.superpixels:
             mask_path = pjoin(self.root, "SegmentationClass/SuperPixels", im_name + ".pt")
+            target_path = pjoin(self.root, "SegmentationClass/pre_encoded_superpixels", im_name + ".pt")
             mask = torch.load(mask_path)
+            lbl = torch.load(target_path)
             return im, lbl, mask
         else:
             return im, lbl

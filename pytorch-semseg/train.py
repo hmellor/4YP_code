@@ -183,7 +183,7 @@ def train(cfg, writer, logger_old, name):
 
             outputs = model(images)
             if use_superpixels:
-                outputs, labels = convert_to_superpixels(outputs, labels, masks)
+                outputs = convert_to_superpixels(outputs, masks)
             loss = loss_fn(input=outputs, target=labels)
 
             # accumulate train metrics during train

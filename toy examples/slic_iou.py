@@ -74,6 +74,7 @@ for idx in range(n):
 # Initialise superpixel tensors
 input_s  = torch.zeros(segments_u,c)
 target_s = torch.zeros(segments_u)
+classes = torch.arange(c)
 # Some prints for sanity checks
 print("Input shape:              {}\nTarget shape:             {}".format(input.shape, target.shape)) 
 print("Input super-pixel shape:  {}\nTarget super-pixel shape: {}".format(input_s.shape, target_s.shape))
@@ -81,17 +82,17 @@ print("Segments shape:           {}".format(segments.shape))
 # Iterate through all the images
 for img in range(n):
     # Define variable for number of unique segments for current image
-    img_seg_u = segments[img,:,:].unique().numel()
+    img_superpixels = segments[img,:,:].unique().numel()
+    img_offset = img*img_superpixels
     # Iterate through all the clusters
-    for idx in range(img_seg_u):
+    for idx in range(img_superpixels):
         # Define mask for cluster idx
         mask = segments[img,:,:]==idx
         # First take slices to select image, then apply mask, then 2D mode for majority class
-        target_s[(img*img_seg_u)+idx] = target[img,:,:][mask].mode()[0].mode()[0]
+        target_s[img_offset+idx] = target[img,:,:][mask].mode()[0].mode()[0]
         # Iterate through all the classes
-        for k in range(c):
-            # Same process as before but also iterating through classes and taking mean because these are scores
-            input_s[(img*img_seg_u)+idx,k] = input[img,k,:,:][mask].mean()
+        # Same process as before but also iterating through classes and taking mean because these are scores
+        input_s[img_offset+idx,classes] = input[img,classes,:,:][:,mask].mean()
 print("\nInput target super-pixeling time: {}\n".format(time.time()-t))
 t = time.time()
 # Calculate the score for the superpixels both being and not being in the class
