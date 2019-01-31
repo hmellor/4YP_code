@@ -36,7 +36,24 @@ def convert_to_superpixels(input, target, mask):
 #    print("Outer loop time (conversion)", time.time()-t)
     return input_s, target.squeeze()
 
-def create_masks():
+def find_smallest_object():
+    root = "../../datasets/VOCdevkit/VOC2011"
+    image_list_path = join(root, "ImageSets/Segmentation/trainval.txt")
+    image_list = tuple(open(image_list_path, "r"))
+    image_list = [id_.rstrip() for id_ in image_list]
+    smallest_object = 1e6
+    for image_number in tqdm(image_list):
+        target_name = image_number + ".png"
+        target_path = join(root, "SegmentationClass/pre_encoded", target_name)
+        target = io.imread(target_path)
+        target = torch.from_numpy(target)
+        object_size = torch.ne(target, 0).sum()
+        if object_size < smallest_object:
+            smallest_object = object_size
+            print(smallest_object, image_number)
+    return smallest_object
+
+def create_masks(segment_optimiser=None):
     root = "../../datasets/VOCdevkit/VOC2011"
     image_list_path = join(root, "ImageSets/Segmentation/trainval.txt")
     image_list = tuple(open(image_list_path, "r"))
@@ -50,7 +67,11 @@ def create_masks():
         target = io.imread(target_path)
         target = torch.from_numpy(target)
         # Perform SLIC segmentation
-        numSegments = 300
+        if segment_optimiser:
+            object_size = torch.ne(target, 0).sum()
+            numSegments = target.numel()/object_size
+        else:
+            numSegments = 300
         mask = slic(image, n_segments = numSegments, sigma = 5)
         mask = torch.from_numpy(mask)
 

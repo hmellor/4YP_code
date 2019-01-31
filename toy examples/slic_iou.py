@@ -12,39 +12,40 @@ from skimage import io
 import matplotlib.pyplot as plt
 import torch
 import time
+import numpy as np
 
-## Testing a preprocessed segmentation
-image = img_as_float(io.imread('2007_002099.jpg'))
-segments = torch.load('2007_002099.pt').numpy()
-# show the output of SLIC
-fig = plt.figure("Superpixels --  segments")
-ax = fig.add_subplot(1, 1, 1)
-ax.imshow(mark_boundaries(image, segments))
-plt.axis("off")
-plt.show()
+### Testing a preprocessed segmentation
+#image = img_as_float(io.imread('2007_002099.jpg'))
+#segments = torch.load('2007_002099.pt').numpy()
+## show the output of SLIC
+#fig = plt.figure("Superpixels --  segments")
+#ax = fig.add_subplot(1, 1, 1)
+#ax.imshow(mark_boundaries(image, segments))
+#plt.axis("off")
+#plt.show()
 
-
-## Pre processing step
-t = time.time()
-# load the image and convert it to a floating point data type
-image = img_as_float(io.imread('2007_000039.jpg'))
-# Perform SLIC segmentation
-numSegments = 10
-segments = slic(image, n_segments = numSegments, sigma = 5)
-
-# show the output of SLIC
-fig = plt.figure("Superpixels -- %d segments" % (numSegments))
-ax = fig.add_subplot(1, 1, 1)
-ax.imshow(mark_boundaries(image, segments))
-plt.axis("off")
-plt.show()
+for numSegments in np.linspace(300, 2000):
+    ## Pre processing step
+    t = time.time()
+    # load the image and convert it to a floating point data type
+    image = img_as_float(io.imread('2007_002107.jpg'))
+    # Perform SLIC segmentation
+    segments = slic(image, n_segments = numSegments, sigma = 5)
+    
+    # show the output of SLIC
+    print(numSegments)
+    fig = plt.figure("Superpixels -- %d segments" % (numSegments))
+    ax = fig.add_subplot(1, 1, 1)
+    ax.imshow(mark_boundaries(image, segments))
+    plt.axis("off")
+    plt.show()
 
 # Convery to torch and save for later
 segments = torch.from_numpy(segments)
 torch.save(segments, '2007_000039.pt')
 print("\nSingle image pre-processing time: {}\n".format(time.time()-t))
 
-
+exit
 ## Loss function
 # Delete tensors to ensure they are being created correctly in loss
 del image
