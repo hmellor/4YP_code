@@ -30,12 +30,11 @@ def cross_entropy2d(input, target, weight=None, size_average=True):
     return loss
 
 def zehan_iou(input, target):
-    t=time.time()
+#    t=time.time()
     n_pixels, c = input.size()
     all_classes = torch.arange(0,c)
     gt_class = all_classes.max().long()
     theta=input[:,gt_class]-input[:,all_classes[all_classes.ne(gt_class)]].exp().sum(1).log()
-
     mask_gt = target.ne(0)
     mask_not_gt = target.eq(0)
 
@@ -45,28 +44,29 @@ def zehan_iou(input, target):
     # Sort all scores that are supposed to be background and sum them cumulatively
     theta_tilde = theta[mask_not_gt].sort(descending=True)[0]
     theta_hat = theta_tilde.cumsum(0)
-    print("Time to initialise all variables:", time.time()-t)
-    t1=time.time()
+#    print("Time to initialise all variables:", time.time()-t)
+#    t1=time.time()
     # Iterate through all possible values of U from the min U to all the super-pixels
     for U in torch.arange(n_gt, n_pixels + 1, device=input.device):
-        # Reset I and sigma for the currenc U
+        # Reset I and sigma for the current U
         I = 0
         sigma = 0
         # For all the superpixels that are the class in the ground truth
-        t=time.time()
+#        t=time.time()
         for theta_j in theta[mask_gt]:
             # If including the jth super=pixel will increase the max{S+delta}, include it
             if theta_j >= 1. / float(U):
                 # Add the score and increase the intersection
                 sigma += theta_j
                 I += 1
-        print("Time for inner loop:", time.time()-t)
+#        print("Time for inner loop:", time.time()-t)
         if U > n_gt:
             sigma += theta_hat[U - n_gt - 1]
-        sigma -= float(I) / float(U)
+        if U > 0:
+            sigma -= float(I) / float(U)
         if sigma >= loss:
             loss = sigma
-    print("Time for outer loop:", time.time()-t1)
+#    print("Time for outer loop:", time.time()-t1)
     loss += 1 - theta[mask_gt].sum()
     return loss
 

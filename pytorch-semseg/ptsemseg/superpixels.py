@@ -6,9 +6,9 @@ from skimage.util import img_as_float
 from skimage.segmentation import slic
 import time
 
-def convert_to_superpixels(input, mask):
-    print("NEW IMAGE")
-    t=time.time()
+def convert_to_superpixels(input, target, mask):
+#    print("NEW IMAGE")
+#    t=time.time()
     # Extract size data from input and target
     images, c, h, w = input.size()
     # Load the pre-processed segmentation
@@ -19,22 +19,22 @@ def convert_to_superpixels(input, mask):
     input_s  = torch.zeros((segments_u,c), device=input.device)
     classes = torch.arange(c, device=input.device)
     # Iterate through all the images
-    print("Time to initialise variables (conversion):", time.time()-t)
-    t=time.time()
+#    print("Time to initialise variables (conversion):", time.time()-t)
+#    t=time.time()
     for img in range(images):
         # Define variable for number of unique superpixels for current image
         img_superpixels = mask[img,:,:].unique().numel()
         img_offset = img*img_superpixels
         # Iterate through all the clusters
-        t1=time.time()
+#        t1=time.time()
         for idx in range(img_superpixels):
             # Define mask for cluster idx
             segment_mask = mask[img,:,:]==idx
             # First take slices to select image, then apply mask, then taking mean
             input_s[img_offset+idx,classes] = input[img,classes,:,:][:,segment_mask].mean()
-        print("Inner loop time (conversion)", time.time()-t1)
-    print("Outer loop time (conversion)", time.time()-t)
-    return input_s
+#        print("Inner loop time (conversion)", time.time()-t1)
+#    print("Outer loop time (conversion)", time.time()-t)
+    return input_s, target.squeeze()
 
 def create_masks():
     root = "../../datasets/VOCdevkit/VOC2011"
