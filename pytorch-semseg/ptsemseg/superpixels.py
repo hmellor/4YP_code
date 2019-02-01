@@ -30,8 +30,8 @@ def convert_to_superpixels(input, target, mask):
         for idx in range(img_superpixels):
             # Define mask for cluster idx
             segment_mask = mask[img,:,:]==idx
-            # First take slices to select image, then apply mask, then taking mean
-            input_s[img_offset+idx,classes] = input[img,classes,:,:][:,segment_mask].mean()
+            # First take slices to select image, then apply mask, then sum scores
+            input_s[img_offset+idx,classes] = input[img,classes,:,:][:,segment_mask].sum()
 #        print("Inner loop time (conversion)", time.time()-t1)
 #    print("Outer loop time (conversion)", time.time()-t)
     return input_s, target.squeeze()
