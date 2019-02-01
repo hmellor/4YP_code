@@ -33,7 +33,7 @@ def zehan_iou(input, target):
 #    t=time.time()
     n_pixels, c = input.size()
     all_classes = torch.arange(0,c)
-    gt_class = all_classes.max().long()
+    gt_class = target.max().long()
     theta=input[:,gt_class]-input[:,all_classes[all_classes.ne(gt_class)]].exp().sum(1).log()
     mask_gt = target.ne(0)
     mask_not_gt = target.eq(0)
