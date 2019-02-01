@@ -57,7 +57,7 @@ def create_mask(image, target, numSegments):
     # Perform SLIC segmentation
     mask = slic(image, n_segments = numSegments, sigma = 5)
     mask = torch.from_numpy(mask)
-    
+
     superpixels = mask.unique().numel()
     target_s = torch.zeros(superpixels)
 
@@ -89,7 +89,7 @@ def create_masks(numSegments=100):
         target_s_save_path = join(root, "SegmentationClass/pre_encoded_superpixels", save_name)
         torch.save(mask, image_save_path)
         torch.save(target_s, target_s_save_path)
-        
+
 def create_optimal_masks(lower_bound=20, upper_bound=300, threshhold=0.98):
     root = "../../datasets/VOCdevkit/VOC2011"
     image_list_path = join(root, "ImageSets/Segmentation/trainval.txt")
@@ -103,7 +103,7 @@ def create_optimal_masks(lower_bound=20, upper_bound=300, threshhold=0.98):
         image = img_as_float(io.imread(image_path))
         target = io.imread(target_path)
         target = torch.from_numpy(target)
-        
+
         mask, target_s = create_mask(image, target, lower_bound)
         acc = image_accuracy(target, mask)
         superpixels = lower_bound
@@ -111,7 +111,7 @@ def create_optimal_masks(lower_bound=20, upper_bound=300, threshhold=0.98):
             superpixels += 20
             mask, target_s = create_mask(image, target, superpixels)
             acc = image_accuracy(target, mask)
-            print(acc, mask.unique().numel())
+#            print(acc, mask.unique().numel())
 
         # Save for later
         save_name = image_number + ".pt"
@@ -138,10 +138,14 @@ def dataset_accuracy(optimal=None):
     image_list = [id_.rstrip() for id_ in image_list]
     image_acc = 0
     if optimal:
-        optimal_dir = "_optimal"
+        mask_dir = "SegmentationClass/SuperPixels_optimal"
+        target_dir = "SegmentationClass/pre_encoded"
+    else:
+        mask_dir = "SegmentationClass/SuperPixels"
+        target_dir = "SegmentationClass/pre_encoded"
     for image_number in tqdm(image_list):
-        mask_path = join(root, "SegmentationClass/SuperPixels"+ optimal_dir, image_number + ".pt")
-        target_path = join(root, "SegmentationClass/pre_encoded"+ optimal_dir, image_number + ".png")
+        mask_path = join(root, mask_dir, image_number + ".pt")
+        target_path = join(root, target_dir, image_number + ".png")
         mask = torch.load(mask_path)
         target = io.imread(target_path)
         target = torch.from_numpy(target)
@@ -149,3 +153,7 @@ def dataset_accuracy(optimal=None):
     dataset_acc = image_acc / len(image_list)
     return dataset_acc
 
+#create_masks()
+#create_optimal_masks()
+#print("  100 Superpixels: ", dataset_accuracy())
+print("Smart Superpixels: ", dataset_accuracy(optimal=True))
