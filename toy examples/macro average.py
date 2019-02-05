@@ -7,6 +7,7 @@ Created on Tue Nov 20 12:23:02 2018
 
 import torch
 
+
 target = torch.tensor([0,1,2,2], dtype=torch.long)
 input  = torch.tensor([[5,2,3],
                        [1,5,3],
@@ -29,6 +30,35 @@ for k in unique:
     print('c({k},y) factored in: ', torch.div((target==k).float() , torch.sum(target==k).float()))
     print('U(y) also factored in:', torch.div((target==k).float() , torch.sum(target==k).float() * unique.size(0)))
     delta[target==k,:] /= torch.sum(target==k).float() * unique.size(0)
+    
+print('\nDelta:\n', delta.transpose(0,1))
+
+
+target = torch.tensor([0,1,2,2], dtype=torch.long)
+size   = torch.tensor([1,1,1,6], dtype=torch.float)
+input  = torch.tensor([[5,2,3],
+                       [1,5,3],
+                       [0,7,3],
+                       [3,1,6]], dtype=torch.float)
+p, c = input.size()
+
+
+print('Input:\n', input.transpose(0, 1), '\nTarget:\n', target, '\n')
+
+delta = torch.ones_like(input)
+arange = torch.arange(p, device=input.device)
+delta[arange, target] -= 1
+delta = torch.mul(delta.t(),size).t()
+print(r'1[y_bar[i]!=y[i]]:','\n', delta.transpose(0,1), '\n')
+unique = torch.unique(target)
+print('Classes in target:', unique, '\nNumber of classes in target:', unique.size(0))
+for k in unique:
+    print('\nClass:', k)
+    print('Pixels affected:      ', (target==k).float())
+    print('c({k},y) factored in: ', torch.div((target==k).float() , torch.sum(target==k).float()))
+    print('U(y) also factored in:', torch.div((target==k).float() , torch.sum(target==k).float() * unique.size(0)))
+    print((target==k).float()*size)
+    delta[target==k,:] /= torch.sum((target==k).float()*size) * unique.size(0)
     
 print('\nDelta:\n', delta.transpose(0,1))
 
