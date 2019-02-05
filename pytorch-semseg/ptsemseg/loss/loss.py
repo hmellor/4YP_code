@@ -70,25 +70,28 @@ def zehan_iou(input, target):
     loss += 1 - theta[mask_gt].sum()
     return loss
 
-def macro_average(input, target):
-    n, c, h, w = input.size()
-    nt, ht, wt = target.size()
+def macro_average(input, target, size=torch.tensor([])):
+    if size.numel()>0:
+        pass
+    else:
+        n, c, h, w = input.size()
+        nt, ht, wt = target.size()
 
-    # Handle inconsistent size between input and target
-    if h > ht and w > wt:  # upsample labels
-        print('resizing, prediction too large')
-        target = target.unsequeeze(1)
-        target = F.upsample(target, size=(h, w), mode="nearest")
-        target = target.sequeeze(1)
-    elif h < ht and w < wt:  # upsample images
-        print('resizing, prediction too small')
-        input = F.upsample(input, size=(ht, wt), mode="bilinear")
-    elif h != ht and w != wt:
-        raise Exception("Only support upsampling")
+        # Handle inconsistent size between input and target
+        if h > ht and w > wt:  # upsample labels
+            print('resizing, prediction too large')
+            target = target.unsequeeze(1)
+            target = F.upsample(target, size=(h, w), mode="nearest")
+            target = target.sequeeze(1)
+        elif h < ht and w < wt:  # upsample images
+            print('resizing, prediction too small')
+            input = F.upsample(input, size=(ht, wt), mode="bilinear")
+        elif h != ht and w != wt:
+            raise Exception("Only support upsampling")
 
-    # Reshape to nxc and nx1 respectively
-    input = input.transpose(1, 2).transpose(2, 3).contiguous().view(-1, c)
-    target = target.view(-1)
+        # Reshape to nxc and nx1 respectively
+        input = input.transpose(1, 2).transpose(2, 3).contiguous().view(-1, c)
+        target = target.view(-1)
     # Initiualise new variables
     p, _ = input.size()
     delta = torch.ones_like(input)
@@ -96,8 +99,13 @@ def macro_average(input, target):
     # Calculate delta
     delta[arange, target] -= 1
     unique = torch.unique(target)
-    for k in unique:
-        delta[target==k,:] /= torch.sum(target==k).float() * unique.size(0)
+    if size.numel()>0:
+        delta = torch.mul(delta.t(),size).t()
+        for k in unique:
+            delta[target==k,:] /= torch.sum((target==k).float()*size) * unique.size(0)
+    else:
+        for k in unique:
+            delta[target==k,:] /= torch.sum(target==k).float() * unique.size(0)
     # Add delta to input
     input = input/p + delta
     # Evaluate optimal prediction
