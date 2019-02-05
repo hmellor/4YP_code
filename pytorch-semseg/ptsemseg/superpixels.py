@@ -7,38 +7,46 @@ from skimage.segmentation import slic
 import time
 
 def convert_to_superpixels(input, target, mask):
-#    print("NEW IMAGE")
-#    t=time.time()
     # Extract size data from input and target
     images, c, h, w = input.size()
-    # Load the pre-processed segmentation
-    segments_u = 0
-    for image in range(images):
-        segments_u += mask[image,:,:].unique().numel()
-    # Initialise superpixel tensors
-    input_s  = torch.zeros((segments_u,c), device=input.device)
-    target_s = torch.zeros(segments_u, device=input.device, dtype = torch.long)
-    size_s  = torch.zeros(segments_u, device=input.device)
-    classes = torch.arange(c, device=input.device)
-    # Iterate through all the images
-#    print("Time to initialise variables (conversion):", time.time()-t)
-#    t=time.time()
-    for img in range(images):
-        # Define variable for number of unique superpixels for current image
-        img_superpixels = mask[img,:,:].unique().numel()
-        img_offset = img*img_superpixels
-        # Iterate through all the clusters
-#        t1=time.time()
-        for idx in range(img_superpixels):
-            # Define mask for cluster idx
-            segment_mask = mask[img,:,:]==idx
-            # First take slices to select image, then apply mask, then sum scores
-            input_s[img_offset+idx,classes] = input[img,classes,:,:][:,segment_mask].sum()
-            target_s[img_offset:img_offset+img_superpixels]=target[img,:]
-            size_s[img_offset+idx] = segment_mask.sum()
-#        print("Inner loop time (conversion)", time.time()-t1)
-#    print("Outer loop time (conversion)", time.time()-t)
-    return input_s, target_s, size_s
+    if images > 1:
+        raise RuntimeError("Not yet implemented for batch sizes greater than 1")
+    Q = mask.unique().numel()
+    t = torch.zeros((Q,c), device=input.device)
+    size = torch.zeros(Q, device=input.device)
+    counter = torch.ones_like(mask, device=input.device)
+
+    size.put_(mask,counter.float(),True)
+
+    input = input.view(c, -1)
+    mask = mask.view(1, -1).repeat(c,1)
+    arange = torch.arange(start=1, end=c, device=input.device)
+    mask[arange,:] += Q*arange.view(-1,1)
+    t = t.put_(mask,input,True).view(c,Q).t()
+    t = (t.t()/size).t() # makes it mean score
+
+    # # Load the pre-processed segmentation
+    # segments_u = 0
+    # for image in range(images):
+    #     segments_u += mask[image,:,:].unique().numel()
+    # # Initialise superpixel tensors
+    # input_s  = torch.zeros((segments_u,c), device=input.device)
+    # size_s  = torch.zeros(segments_u, device=input.device)
+    # classes = torch.arange(c, device=input.device)
+    # # Iterate through all the images
+    # for img in range(images):
+    #     # Define variable for number of unique superpixels for current image
+    #     img_superpixels = mask[img,:,:].unique().numel()
+    #     img_offset = img*img_superpixels
+    #     # Iterate through all the clusters
+    #     for idx in range(img_superpixels):
+    #         # Define mask for cluster idx
+    #         segment_mask = mask[img,:,:]==idx
+    #         # First take slices to select image, then apply mask, then sum scores
+    #         input_s[img_offset+idx,classes] = input[img,classes,:,:][:,segment_mask].sum()
+    #         size_s[img_offset+idx] = segment_mask.sum()
+
+    return t, target.view(-1), size
 
 def find_smallest_object():
     root = "../../datasets/VOCdevkit/VOC2011"
@@ -63,7 +71,7 @@ def create_mask(image, target, numSegments):
     mask = torch.from_numpy(mask)
 
     superpixels = mask.unique().numel()
-    target_s = torch.zeros(superpixels)
+    target_s = torch.zeros(superpixels, dtype=torch.long)
 
     for superpixel in range(superpixels):
         # Define mask for cluster idx
