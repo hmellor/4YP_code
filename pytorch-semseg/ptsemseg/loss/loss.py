@@ -70,8 +70,11 @@ def zehan_iou(input, target):
     loss += 1 - theta[mask_gt].sum()
     return loss
 
-def macro_average(input, target, size=torch.tensor([])):
-    if size.numel()>0:
+def macro_average(input, target, size=None):
+
+    raise RuntimeError("this code assumes that the superpixels are computed as an average of scores rather than a sum")
+
+    if size is not None:
         pass
     else:
         n, c, h, w = input.size()
@@ -99,20 +102,29 @@ def macro_average(input, target, size=torch.tensor([])):
     # Calculate delta
     delta[arange, target] -= 1
     unique = torch.unique(target)
-    if size.numel()>0:
-        delta = torch.mul(delta.t(),size).t()
-        for k in unique:
-            delta[target==k,:] /= torch.sum((target==k).float()*size) * unique.size(0)
-    else:
-        for k in unique:
-            delta[target==k,:] /= torch.sum(target==k).float() * unique.size(0)
-    # Add delta to input
+
+    # if size.numel()>0:
+    #     delta = torch.mul(delta.t(),size).t()
+    #     for k in unique:
+    #         delta[target==k,:] /= torch.sum((target==k).float()*size) * unique.size(0)
+    # else:
+    #     for k in unique:
+    #         delta[target==k,:] /= torch.sum(target==k).float() * unique.size(0)
+
+    for k in unique:
+        delta[target==k,:] /= torch.sum(target==k).float() * unique.size(0)
+
     input = input/p + delta
     # Evaluate optimal prediction
     pred = torch.argmax(input, 1)
-    # Evaluate scores for ground truth and prediction
-    score_y = torch.sum(input.gather(1, target.unsqueeze(1)))
-    score_pred_delta = torch.sum(input.gather(1, pred.unsqueeze(1)))
+    if size is not None:
+        # Evaluate scores for ground truth and prediction
+        size_summed = size.sum()
+        score_y = torch.sum(input.gather(1, target.unsqueeze(1)) * size) / size_summed
+        score_pred_delta = torch.sum(input.gather(1, pred.unsqueeze(1)) * size) / size_summed
+    else:
+        score_y = torch.sum(input.gather(1, target.unsqueeze(1)))
+        score_pred_delta = torch.sum(input.gather(1, pred.unsqueeze(1)))
     # Evaluate total loss
     loss = score_pred_delta - score_y
     return loss
