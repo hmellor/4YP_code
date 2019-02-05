@@ -180,6 +180,7 @@ def train(cfg, writer, logger_old, name):
             model.train()
             images = images.to(device)
             labels = labels.to(device)
+            masks = masks.to(device)
 
             outputs = model(images)
             if use_superpixels:
@@ -233,6 +234,7 @@ def train(cfg, writer, logger_old, name):
                     for i_val, (images_val, labels_val, masks_val) in tqdm(enumerate(valloader)):
                         images_val = images_val.to(device)
                         labels_val = labels_val.to(device)
+                        masks_val = masks_val.to(device)
 
                         outputs = model(images_val)
                         if use_superpixels:

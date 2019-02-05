@@ -72,7 +72,7 @@ def zehan_iou(input, target):
 
 def macro_average(input, target, size=None):
 
-    raise RuntimeError("this code assumes that the superpixels are computed as an average of scores rather than a sum")
+    #raise RuntimeError("this code assumes that the superpixels are computed as an average of scores rather than a sum")
 
     if size is not None:
         pass
