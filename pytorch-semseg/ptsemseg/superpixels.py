@@ -17,6 +17,8 @@ def convert_to_superpixels(input, target, mask):
         segments_u += mask[image,:,:].unique().numel()
     # Initialise superpixel tensors
     input_s  = torch.zeros((segments_u,c), device=input.device)
+    target_s = torch.zeros(segments_u, device=input.device, dtype = torch.long)
+    size_s  = torch.zeros(segments_u, device=input.device)
     classes = torch.arange(c, device=input.device)
     # Iterate through all the images
 #    print("Time to initialise variables (conversion):", time.time()-t)
@@ -32,9 +34,11 @@ def convert_to_superpixels(input, target, mask):
             segment_mask = mask[img,:,:]==idx
             # First take slices to select image, then apply mask, then sum scores
             input_s[img_offset+idx,classes] = input[img,classes,:,:][:,segment_mask].sum()
+            target_s[img_offset:img_offset+img_superpixels]=target[img,:]
+            size_s[img_offset+idx] = segment_mask.sum()
 #        print("Inner loop time (conversion)", time.time()-t1)
 #    print("Outer loop time (conversion)", time.time()-t)
-    return input_s, target.squeeze()
+    return input_s, target_s, size_s
 
 def find_smallest_object():
     root = "../../datasets/VOCdevkit/VOC2011"
@@ -156,4 +160,4 @@ def dataset_accuracy(optimal=None):
 #create_masks()
 #create_optimal_masks()
 #print("  100 Superpixels: ", dataset_accuracy())
-print("Smart Superpixels: ", dataset_accuracy(optimal=True))
+#print("Smart Superpixels: ", dataset_accuracy(optimal=True))
