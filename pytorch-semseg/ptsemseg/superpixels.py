@@ -81,11 +81,13 @@ def create_mask(image, target, numSegments):
     return mask, target_s
 
 def create_masks(numSegments=100):
+    # Establish images to create masks for
     root = "../../datasets/VOCdevkit/VOC2011"
     image_list_path = join(root, "ImageSets/Segmentation/trainval.txt")
     image_list = tuple(open(image_list_path, "r"))
     image_list = [id_.rstrip() for id_ in image_list]
     for image_number in tqdm(image_list):
+        # Load image/target pair
         image_name = image_number + ".jpg"
         target_name = image_number + ".png"
         image_path = join(root, "JPEGImages", image_name)
@@ -93,6 +95,7 @@ def create_masks(numSegments=100):
         image = img_as_float(io.imread(image_path))
         target = io.imread(target_path)
         target = torch.from_numpy(target)
+        # Create mask for image/target pair
         mask, target_s = create_mask(image, target, numSegments)
 
         # Save for later
