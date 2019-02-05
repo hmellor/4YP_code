@@ -23,7 +23,7 @@ def convert_to_superpixels(input, target, mask):
     arange = torch.arange(start=1, end=c, device=input.device)
     mask[arange,:] += Q*arange.view(-1,1)
     t = t.put_(mask,input,True).view(c,Q).t()
-    t = (t.t()/size).t() # makes it mean score
+    #t = (t.t()/size).t() # makes it mean score
 
     # # Load the pre-processed segmentation
     # segments_u = 0
