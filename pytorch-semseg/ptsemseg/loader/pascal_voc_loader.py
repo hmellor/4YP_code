@@ -81,7 +81,7 @@ class pascalVOCLoader(data.Dataset):
         for split in ["train", "val", "trainval", "train_binary", "val_binary"]:
             path = pjoin(self.root, "ImageSets/Segmentation", split + ".txt")
             file_list = tuple(open(path, "r"))
-            if split == "train_binary" and self.superpixels:
+            if self.split == "train_binary" and self.superpixels:
                 self.train_len = len(file_list)
             elif split == 'train':
                 self.train_len = len(file_list)
@@ -112,7 +112,8 @@ class pascalVOCLoader(data.Dataset):
             lbl = torch.load(target_path)
             return im, lbl, mask
         else:
-            return im, lbl
+            mask = torch.tensor([])
+            return im, lbl, mask
 
     def transform(self, img, lbl):
         if self.img_size == ('same', 'same'):

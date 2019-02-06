@@ -29,10 +29,10 @@ def cross_entropy2d(input, target, weight=None, size_average=True):
     )
     return loss
 
-def zehan_iou(input, target):
+def zehan_iou(input, target, size):
 #    t=time.time()
     n_pixels, c = input.size()
-    all_classes = torch.arange(0,c)
+    all_classes = torch.arange(0,c, device = input.device)
     gt_class = target.max().long()
     theta=input[:,gt_class]-input[:,all_classes[all_classes.ne(gt_class)]].exp().sum(1).log()
     mask_gt = target.ne(0)
@@ -70,25 +70,31 @@ def zehan_iou(input, target):
     loss += 1 - theta[mask_gt].sum()
     return loss
 
-def macro_average(input, target):
-    n, c, h, w = input.size()
-    nt, ht, wt = target.size()
+def macro_average(input, target, size=None):
 
-    # Handle inconsistent size between input and target
-    if h > ht and w > wt:  # upsample labels
-        print('resizing, prediction too large')
-        target = target.unsequeeze(1)
-        target = F.upsample(target, size=(h, w), mode="nearest")
-        target = target.sequeeze(1)
-    elif h < ht and w < wt:  # upsample images
-        print('resizing, prediction too small')
-        input = F.upsample(input, size=(ht, wt), mode="bilinear")
-    elif h != ht and w != wt:
-        raise Exception("Only support upsampling")
+    #raise RuntimeError("this code assumes that the superpixels are computed as an average of scores rather than a sum")
 
-    # Reshape to nxc and nx1 respectively
-    input = input.transpose(1, 2).transpose(2, 3).contiguous().view(-1, c)
-    target = target.view(-1)
+    if size is not None:
+        pass
+    else:
+        n, c, h, w = input.size()
+        nt, ht, wt = target.size()
+
+        # Handle inconsistent size between input and target
+        if h > ht and w > wt:  # upsample labels
+            print('resizing, prediction too large')
+            target = target.unsequeeze(1)
+            target = F.upsample(target, size=(h, w), mode="nearest")
+            target = target.sequeeze(1)
+        elif h < ht and w < wt:  # upsample images
+            print('resizing, prediction too small')
+            input = F.upsample(input, size=(ht, wt), mode="bilinear")
+        elif h != ht and w != wt:
+            raise Exception("Only support upsampling")
+
+        # Reshape to nxc and nx1 respectively
+        input = input.transpose(1, 2).transpose(2, 3).contiguous().view(-1, c)
+        target = target.view(-1)
     # Initiualise new variables
     p, _ = input.size()
     delta = torch.ones_like(input)
@@ -96,15 +102,29 @@ def macro_average(input, target):
     # Calculate delta
     delta[arange, target] -= 1
     unique = torch.unique(target)
+
+    # if size.numel()>0:
+    #     delta = torch.mul(delta.t(),size).t()
+    #     for k in unique:
+    #         delta[target==k,:] /= torch.sum((target==k).float()*size) * unique.size(0)
+    # else:
+    #     for k in unique:
+    #         delta[target==k,:] /= torch.sum(target==k).float() * unique.size(0)
+
     for k in unique:
         delta[target==k,:] /= torch.sum(target==k).float() * unique.size(0)
-    # Add delta to input
+
     input = input/p + delta
     # Evaluate optimal prediction
     pred = torch.argmax(input, 1)
-    # Evaluate scores for ground truth and prediction
-    score_y = torch.sum(input.gather(1, target.unsqueeze(1)))
-    score_pred_delta = torch.sum(input.gather(1, pred.unsqueeze(1)))
+    if size is not None:
+        # Evaluate scores for ground truth and prediction
+        size_summed = size.sum()
+        score_y = torch.sum(input.gather(1, target.unsqueeze(1)) * size) / size_summed
+        score_pred_delta = torch.sum(input.gather(1, pred.unsqueeze(1)) * size) / size_summed
+    else:
+        score_y = torch.sum(input.gather(1, target.unsqueeze(1)))
+        score_pred_delta = torch.sum(input.gather(1, pred.unsqueeze(1)))
     # Evaluate total loss
     loss = score_pred_delta - score_y
     return loss
