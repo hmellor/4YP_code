@@ -114,21 +114,19 @@ def macro_average(input, target, size=None):
     for k in unique:
         delta[target==k,:] /= torch.sum(target==k).float() * unique.size(0)
 
-    input = input/p
+    input = input/p + delta
     # Evaluate optimal prediction
-    pred = torch.argmax(input+delta, 1)
+    pred = torch.argmax(input, 1)
     if size is not None:
         # Evaluate scores for ground truth and prediction
         size_summed = size.sum()
-        score_y = torch.sum(input.gather(1, target.unsqueeze(1))) / size_summed
-        score_pred = torch.sum(input.gather(1, pred.unsqueeze(1))) / size_summed
-        delta = torch.sum(delta.gather(1, pred.unsqueeze(1)) * size) / size_summed
+        score_y = torch.sum(input.gather(1, target.unsqueeze(1)) * size) / size_summed
+        score_pred_delta = torch.sum(input.gather(1, pred.unsqueeze(1)) * size) / size_summed
     else:
         score_y = torch.sum(input.gather(1, target.unsqueeze(1)))
-        score_pred = torch.sum(input.gather(1, pred.unsqueeze(1)))
-        delta = torch.sum(delta.gather(1, pred.unsqueeze(1)))
+        score_pred_delta = torch.sum(input.gather(1, pred.unsqueeze(1)))
     # Evaluate total loss
-    loss = score_pred + delta - score_y
+    loss = score_pred_delta - score_y
     return loss
 
 def micro_average(input, target):
