@@ -112,7 +112,8 @@ class pascalVOCLoader(data.Dataset):
             lbl = torch.load(target_path)
             return im, lbl, mask
         else:
-            return im, lbl
+            mask = torch.tensor([])
+            return im, lbl, mask
 
     def transform(self, img, lbl):
         if self.img_size == ('same', 'same'):
