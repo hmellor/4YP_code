@@ -8,7 +8,8 @@ def loss_zehan(theta, y):
 
     mask_gt = y.ne(0)
     mask_not_gt = y.eq(0)
-
+    print(mask_gt, "\n", mask_not_gt)
+    
     n_gt = mask_gt.sum()
 
     # Zehan's algorithm
