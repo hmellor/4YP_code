@@ -184,8 +184,8 @@ def train(cfg, writer, logger_old, name):
 
             outputs = model(images)
             if use_superpixels:
-                outputs, labels, sizes = convert_to_superpixels(outputs, labels, masks)
-                loss = loss_fn(input=outputs, target=labels, size=sizes)
+                outputs_s, labels_s, sizes = convert_to_superpixels(outputs, labels, masks)
+                loss = loss_fn(input=outputs_s, target=labels_s, size=sizes)
             else:
                 loss = loss_fn(input=outputs, target=labels)
 
@@ -238,8 +238,8 @@ def train(cfg, writer, logger_old, name):
 
                         outputs = model(images_val)
                         if use_superpixels:
-                            outputs, labels_val, sizes_val = convert_to_superpixels(outputs, labels_val, masks_val)
-                            val_loss = loss_fn(input=outputs, target=labels_val, size=sizes_val)
+                            outputs_s, labels_val_s, sizes_val = convert_to_superpixels(outputs, labels_val, masks_val)
+                            val_loss = loss_fn(input=outputs_s, target=labels_val_s, size=sizes_val)
                         else:
                             val_loss = loss_fn(input=outputs, target=labels_val)
                         pred = outputs.data.max(1)[1].cpu().numpy()
