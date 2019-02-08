@@ -109,11 +109,12 @@ class pascalVOCLoader(data.Dataset):
             mask_path = pjoin(self.root, "SegmentationClass/SuperPixels", im_name + ".pt")
             target_path = pjoin(self.root, "SegmentationClass/pre_encoded_superpixels", im_name + ".pt")
             mask = torch.load(mask_path)
-            lbl = torch.load(target_path)
-            return im, lbl, mask
+            lbl_s = torch.load(target_path)
+            return im, lbl, lbl_s, mask
         else:
             mask = torch.tensor([])
-            return im, lbl, mask
+            lbl_s = torch.tensor([])
+            return im, lbl, lbl_s, mask
 
     def transform(self, img, lbl):
         if self.img_size == ('same', 'same'):
