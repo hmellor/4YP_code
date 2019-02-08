@@ -31,7 +31,7 @@ def convert_to_superpixels(input, target, mask):
 # For pre-processing
 def create_masks(numSegments=100):
     # Generate image list
-    image_list = get_image_list()
+    image_list, root = get_image_list()
     for image_number in tqdm(image_list):
         # Load image/target pair
         image_name = image_number + ".jpg"
@@ -53,7 +53,7 @@ def create_masks(numSegments=100):
 
 def create_optimal_masks(lower_bound=20, upper_bound=300, threshhold=0.98):
     # Generate image list
-    image_list = get_image_list()
+    image_list, root = get_image_list()
     for image_number in tqdm(image_list):
         image_name = image_number + ".jpg"
         target_name = image_number + ".png"
@@ -99,7 +99,7 @@ def get_image_list():
     image_list_path = join(root, "ImageSets/Segmentation/trainval.txt")
     image_list = tuple(open(image_list_path, "r"))
     image_list = [id_.rstrip() for id_ in image_list]
-    return image_list
+    return image_list, root
 
 # For superpixel validation
 def image_accuracy(target, mask):
@@ -115,7 +115,7 @@ def image_accuracy(target, mask):
 
 def dataset_accuracy(optimal=None):
     # Generate image list
-    image_list = get_image_list()
+    image_list, root = get_image_list()
     image_acc = 0
     if optimal:
         mask_dir = "SegmentationClass/SuperPixels_optimal"
@@ -135,7 +135,7 @@ def dataset_accuracy(optimal=None):
 
 def find_smallest_object():
     # Generate image list
-    image_list = get_image_list()
+    image_list, root = get_image_list()
     smallest_object = 1e6
     for image_number in tqdm(image_list):
         target_name = image_number + ".png"
@@ -148,8 +148,8 @@ def find_smallest_object():
             print(smallest_object, image_number)
     return smallest_object
 
-def find_size_vairance():
-    image_list = get_image_list()
+def find_size_variance():
+    image_list, root = get_image_list()
     mask_dir = "SegmentationClass/SuperPixels"
     dataset_variance = 0
     for image_number in tqdm(image_list):
