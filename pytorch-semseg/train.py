@@ -172,7 +172,7 @@ def train(cfg, writer, logger_old, name):
     it_per_step = cfg['training']['acc_batch_size']
     eff_batch_size = cfg['training']['batch_size'] * it_per_step
     while i <= train_len*(cfg['training']['epochs']) and flag:
-        for (images, labels, masks) in trainloader:
+        for (images, labels, labels_s, masks) in trainloader:
             i += 1
             j += 1
             start_ts = time.time()
@@ -180,11 +180,12 @@ def train(cfg, writer, logger_old, name):
             model.train()
             images = images.to(device)
             labels = labels.to(device)
+            labels_s = labels_s.to(device)
             masks = masks.to(device)
 
             outputs = model(images)
             if use_superpixels:
-                outputs_s, labels_s, sizes = convert_to_superpixels(outputs, labels, masks)
+                outputs_s, labels_s, sizes = convert_to_superpixels(outputs, labels_s, masks)
                 loss = loss_fn(input=outputs_s, target=labels_s, size=sizes)
             else:
                 loss = loss_fn(input=outputs, target=labels)
@@ -231,14 +232,15 @@ def train(cfg, writer, logger_old, name):
                 optimizer.zero_grad()
                 model.eval()
                 with torch.no_grad():
-                    for i_val, (images_val, labels_val, masks_val) in tqdm(enumerate(valloader)):
+                    for i_val, (images_val, labels_val, labels_val_s, masks_val) in tqdm(enumerate(valloader)):
                         images_val = images_val.to(device)
                         labels_val = labels_val.to(device)
+                        labels_val_s = labels_val.to(device)
                         masks_val = masks_val.to(device)
 
                         outputs = model(images_val)
                         if use_superpixels:
-                            outputs_s, labels_val_s, sizes_val = convert_to_superpixels(outputs, labels_val, masks_val)
+                            outputs_s, labels_val_s, sizes_val = convert_to_superpixels(outputs, labels_val_s, masks_val)
                             val_loss = loss_fn(input=outputs_s, target=labels_val_s, size=sizes_val)
                         else:
                             val_loss = loss_fn(input=outputs, target=labels_val)
