@@ -48,17 +48,18 @@ def zehan_iou(input, target, size):
         # Reset I and sigma for the current U
         I = 0
         sigma = 0
-        # Indices of theta values that would increase max{S+delta}
-        indices = theta[mask_gt] >= 1. / float(U)
-        # Add these scores to sigma
-        sigma = (indices.float() * theta[mask_gt]).sum()
-        # Update I with the number of suitable theta values
-        I = indices.sum()
+        if U > 0:
+            # Indices of theta values that would increase max{S+delta}
+            indices = theta[mask_gt] >= 1. / float(U)
+            # Add these scores to sigma
+            sigma = (indices.float() * theta[mask_gt]).sum()
+            # Update I with the number of suitable theta values
+            I = indices.sum()
+            # Add the iou term
+            sigma -= float(I) / float(U)
 
         if U > n_gt:
             sigma += theta_hat[U - n_gt - 1]
-        if U > 0:
-            sigma -= float(I) / float(U)
         if sigma >= loss:
             loss = sigma
     loss += 1 - theta[mask_gt].sum()
