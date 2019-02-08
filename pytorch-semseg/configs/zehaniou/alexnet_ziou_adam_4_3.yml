@@ -1,0 +1,24 @@
+model:
+    arch: fcalexnet
+data:
+    dataset: pascal
+    train_split: train_binary
+    val_split: val_binary
+    img_rows: 'same'
+    img_cols: 'same'
+    path: ../datasets/VOCdevkit/VOC2011
+training:
+    epochs: 500
+    batch_size: 1
+    acc_batch_size: 20
+    n_workers: 1
+    print_interval: 5 # in iterations
+    optimizer:
+        name: 'adam'
+        lr: 1.0e-4
+        weight_decay: 1.0e-3
+    loss:
+        name: 'zehan_iou'
+        superpixels: 'True'
+    lr_schedule:
+    resume: #runs/config/80202/fcn8s_pascal.pkl
