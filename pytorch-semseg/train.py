@@ -180,7 +180,7 @@ def train(cfg, writer, logger_old, name):
             model.train()
             images = images.to(device)
             labels = labels.to(device)
-            label_s = labels.to(device)
+            labels_s = labels_s.to(device)
             masks = masks.to(device)
 
             outputs = model(images)

@@ -14,7 +14,7 @@ def convert_to_superpixels(input, target, mask):
         raise RuntimeError("Not yet implemented for batch sizes greater than 1")
     # Initialise vairables to use
     Q = mask.unique().numel()
-    t = torch.zeros((Q,c), device=input.device)
+    output = torch.zeros((Q,c), device=input.device)
     size = torch.zeros(Q, device=input.device)
     counter = torch.ones_like(mask, device=input.device)
     # Calculate the size of each superpixel
@@ -24,9 +24,9 @@ def convert_to_superpixels(input, target, mask):
     mask = mask.view(1, -1).repeat(c,1)
     arange = torch.arange(start=1, end=c, device=input.device)
     mask[arange,:] += Q*arange.view(-1,1)
-    t = t.put_(mask,input,True).view(c,Q).t()
-    t = (t.t()/size).t()
-    return t, target.view(-1), size
+    output = output.put_(mask,input,True).view(c,Q).t()
+    output = (output.t()/size).t()
+    return output, target.view(-1), size
 
 # For pre-processing
 def create_masks(numSegments=100):
