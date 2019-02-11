@@ -2,8 +2,8 @@ model:
     arch: fcalexnet
 data:
     dataset: pascal
-    train_split: train_binary
-    val_split: val_binary
+    train_split: train_super
+    val_split: val_super
     img_rows: 'same'
     img_cols: 'same'
     path: ../datasets/VOCdevkit/VOC2011
