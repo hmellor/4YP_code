@@ -32,38 +32,39 @@ def cross_entropy2d(input, target, weight=None, size_average=True):
 def zehan_iou(input, target, size):
     n_pixels, c = input.size()
     all_classes = torch.arange(0,c, device = input.device)
-    gt_class = target.max().long()
-    theta=input[:,gt_class]-input[:,all_classes[all_classes.ne(gt_class)]].exp().sum(1).log()
-    mask_gt = target.ne(0)
-    mask_not_gt = target.eq(0)
+    gt_classes = target.unique(sorted=True)[1:]
+    loss = torch.zeros(1, gt_classes.numel(), device=input.device)
+    for i, gt_class in enumerate(gt_classes):
+        theta=input[:,gt_class]-input[:,all_classes[all_classes.ne(gt_class)]].logsumexp(1)
+        mask_gt = target.eq(gt_class)
+        mask_not_gt = target.ne(gt_class)
 
-    n_gt = mask_gt.long().sum()
-    # Zehan's algorithm
-    loss = torch.zeros(1, device=input.device)
-    # Sort all scores that are supposed to be background and sum them cumulatively
-    theta_tilde = theta[mask_not_gt].sort(descending=True)[0]
-    theta_hat = theta_tilde.cumsum(0)
-    # Iterate through all possible values of U from the min U to all the super-pixels
-    for U in torch.arange(n_gt, n_pixels + 1, device=input.device):
-        # Reset I and sigma for the current U
-        I = 0
-        sigma = 0
-        if U > 0:
-            # Indices of theta values that would increase max{S+delta}
-            indices = theta[mask_gt] >= 1. / float(U)
-            # Add these scores to sigma
-            sigma = (indices.float() * theta[mask_gt]).sum()
-            # Update I with the number of suitable theta values
-            I = indices.sum()
-            # Add the iou term
-            sigma -= float(I) / float(U)
+        n_gt = mask_gt.long().sum()
+        # Zehan's algorithm
+        # Sort all scores that are supposed to be background and sum them cumulatively
+        theta_tilde = theta[mask_not_gt].sort(descending=True)[0]
+        theta_hat = theta_tilde.cumsum(0)
+        # Iterate through all possible values of U from the min U to all the super-pixels
+        for U in torch.arange(n_gt, n_pixels + 1, device=input.device):
+            # Reset I and sigma for the current U
+            I = 0
+            sigma = 0
+            if U > 0:
+                # Indices of theta values that would increase max{S+delta}
+                indices = theta[mask_gt] >= 1. / float(U)
+                # Add these scores to sigma
+                sigma = (indices.float() * theta[mask_gt]).sum()
+                # Update I with the number of suitable theta values
+                I = indices.sum()
+                # Add the iou term
+                sigma -= float(I) / float(U)
 
-        if U > n_gt:
-            sigma += theta_hat[U - n_gt - 1]
-        if sigma >= loss:
-            loss = sigma
-    loss += 1 - theta[mask_gt].sum()
-    return loss
+            if U > n_gt:
+                sigma += theta_hat[U - n_gt - 1]
+            if sigma >= loss[0, i]:
+                loss[0, i] = sigma
+        loss[0, i] += 1 - theta[mask_gt].sum()
+    return loss.mean()
 
 def macro_average(input, target, size=None):
 
@@ -97,14 +98,6 @@ def macro_average(input, target, size=None):
     # Calculate delta
     delta[arange, target] -= 1
     unique = torch.unique(target)
-
-    # if size.numel()>0:
-    #     delta = torch.mul(delta.t(),size).t()
-    #     for k in unique:
-    #         delta[target==k,:] /= torch.sum((target==k).float()*size) * unique.size(0)
-    # else:
-    #     for k in unique:
-    #         delta[target==k,:] /= torch.sum(target==k).float() * unique.size(0)
 
     for k in unique:
         delta[target==k,:] /= torch.sum(target==k).float() * unique.size(0)
