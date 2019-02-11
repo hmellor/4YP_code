@@ -94,9 +94,12 @@ def create_mask(image, target, numSegments):
         target_s[superpixel] = target[segment_mask].mode()[0].mode()[0]
     return mask, target_s
 
-def get_image_list():
+def get_image_list(split=None):
     root = "../../datasets/VOCdevkit/VOC2011"
-    image_list_path = join(root, "ImageSets/Segmentation/trainval.txt")
+    if split == None:
+        image_list_path = join(root, "ImageSets/Segmentation/trainval.txt")
+    else:
+        image_list_path = join(root, "ImageSets/Segmentation/", split + ".txt")
     image_list = tuple(open(image_list_path, "r"))
     image_list = [id_.rstrip() for id_ in image_list]
     return image_list, root
@@ -147,6 +150,19 @@ def find_smallest_object():
             smallest_object = object_size
             print(smallest_object, image_number)
     return smallest_object
+
+def find_broken_images(split=None):
+    # Generate image list
+    image_list, root = get_image_list(split)
+    broken_images = 0
+    for image_number in tqdm(image_list):
+        target_name = image_number + ".pt"
+        target_path = join(root, "SegmentationClass/pre_encoded_superpixels", target_name)
+        target = torch.load(target_path)
+        if target.nonzero().numel() < 1:
+            broken_images += 1
+            print(target.nonzero(), target_name)
+    return broken_images
 
 def find_size_variance():
     image_list, root = get_image_list()
