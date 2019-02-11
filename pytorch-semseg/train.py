@@ -235,7 +235,7 @@ def train(cfg, writer, logger_old, name):
                     for i_val, (images_val, labels_val, labels_val_s, masks_val) in tqdm(enumerate(valloader)):
                         images_val = images_val.to(device)
                         labels_val = labels_val.to(device)
-                        labels_val_s = labels_val.to(device)
+                        labels_val_s = labels_val_s.to(device)
                         masks_val = masks_val.to(device)
 
                         outputs = model(images_val)
