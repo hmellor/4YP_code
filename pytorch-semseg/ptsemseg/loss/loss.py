@@ -108,8 +108,10 @@ def macro_average(input, target, size=None):
     if size is not None:
         # Evaluate scores for ground truth and prediction
         size_summed = size.sum()
-        score_y = torch.sum(input.gather(1, target.unsqueeze(1)) * size) / size_summed
-        score_pred_delta = torch.sum(input.gather(1, pred.unsqueeze(1)) * size) / size_summed
+        y_index = (target.float() * size).unsqueeze(1).long()
+        pred_index = (pred.float() * size).unsqueeze(1).long()
+        score_y = torch.sum(input.gather(1, y_index)) / size_summed
+        score_pred_delta = torch.sum(input.gather(1, pred_index)) / size_summed
     else:
         score_y = torch.sum(input.gather(1, target.unsqueeze(1)))
         score_pred_delta = torch.sum(input.gather(1, pred.unsqueeze(1)))
