@@ -80,6 +80,7 @@ def create_optimal_masks(lower_bound=20, upper_bound=300, threshhold=0.98):
         torch.save(target_s, target_s_save_path)
 
 def create_mask(image, target, numSegments):
+    """
     # Perform SLIC segmentation
     mask = slic(image, n_segments = numSegments, sigma = 5)
     mask = torch.from_numpy(mask)
@@ -92,6 +93,10 @@ def create_mask(image, target, numSegments):
         segment_mask = mask==superpixel
         # First take slices to select image, then apply mask, then 2D mode for majority class
         target_s[superpixel] = target[segment_mask].mode()[0].mode()[0]
+    """
+    mask = torch.arange(target.numel()).view(target.size()[0], target.size()[1])
+    target_s = target.view(-1).long()
+#    print(mask.size(), target_s.size(), target_s.type())
     return mask, target_s
 
 def get_image_list(split=None):
