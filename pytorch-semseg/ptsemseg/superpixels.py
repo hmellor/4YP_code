@@ -50,47 +50,52 @@ def create_masks(numSegments=100):
         target_s_save_path = join(root, "SegmentationClass/pre_encoded_superpixels", save_name)
         torch.save(mask, image_save_path)
         torch.save(target_s, target_s_save_path)
-
-def create_optimal_masks(lower_bound=20, upper_bound=300, threshhold=0.98):
-    # Generate image list
-    image_list, root = get_image_list()
-    for image_number in tqdm(image_list):
-        image_name = image_number + ".jpg"
-        target_name = image_number + ".png"
-        image_path = join(root, "JPEGImages", image_name)
-        target_path = join(root, "SegmentationClass/pre_encoded", target_name)
-        image = img_as_float(io.imread(image_path))
-        target = io.imread(target_path)
-        target = torch.from_numpy(target)
-
-        mask, target_s = create_mask(image, target, lower_bound)
-        acc = image_accuracy(target, mask)
-        superpixels = lower_bound
-        while acc < threshhold and superpixels < upper_bound:
-            superpixels += 20
-            mask, target_s = create_mask(image, target, superpixels)
-            acc = image_accuracy(target, mask)
-#            print(acc, mask.unique().numel())
-
-        # Save for later
-        save_name = image_number + ".pt"
-        image_save_path = join(root, "SegmentationClass/SuperPixels_optimal", save_name)
-        target_s_save_path = join(root, "SegmentationClass/pre_encoded_superpixels_optimal", save_name)
-        torch.save(mask, image_save_path)
-        torch.save(target_s, target_s_save_path)
+    print(dataset_accuracy())
+    print(find_size_variance())
 
 def create_mask(image, target, numSegments):
     # Perform SLIC segmentation
-    mask = slic(image, n_segments = numSegments, sigma = 5)
+    mask = slic(image, n_segments = numSegments, slic_zero=True)
     mask = torch.from_numpy(mask)
 
     superpixels = mask.unique().numel()
-    target_s = torch.zeros(superpixels, dtype=torch.long)
+    overseg = superpixels
 
+    # Oversegmentation step
     for superpixel in range(superpixels):
-        # Define mask for cluster idx
+        overseg -= 1
+        # Define mask for superpixel
         segment_mask = mask==superpixel
-        # First take slices to select image, then apply mask, then 2D mode for majority class
+        # Classes in this superpixel
+        classes = target[segment_mask].unique(sorted=True)
+        # Check if superpixel is on target boundary
+        on_boundary = classes.numel() > 1
+#        print("Is sp  on boundary?:", on_boundary)
+        if on_boundary:
+            # Find how many of each class is in superpixel
+            class_count = torch.bincount(target[segment_mask])
+            # Remove zero elements
+            class_count = class_count[class_count.nonzero()].float()
+#            print(class_count)
+            minority_class = min(class_count)
+     #       print(minority_class, class_count.sum() *0.05)
+            above_threshold = minority_class > class_count.sum() * 0.05
+ #           print("Is minority class big enough:", above_threshold)
+            if above_threshold:
+                # Leaving one class in supperpixel be
+                for c in classes[1:]: 
+                    # Adding to the oversegmentation offset
+                    overseg += 1
+                    # Add offset to class c in the mask
+                    mask[segment_mask] += (target[segment_mask]==c).long()*overseg
+
+    # Redefine how many superpixels there are and create target_s
+    superpixels = mask.unique().numel()
+    target_s = torch.zeros(superpixels, dtype=torch.long)
+    for superpixel in range(superpixels):
+        # Define mask for superpixel
+        segment_mask = mask==superpixel
+        # Apply mask, then 2D mode for majority class
         target_s[superpixel] = target[segment_mask].mode()[0].mode()[0]
     return mask, target_s
 
@@ -105,7 +110,7 @@ def get_image_list(split=None):
     return image_list, root
 
 # For superpixel validation
-def image_accuracy(target, mask):
+def mask_accuracy(target, mask):
     target_s = torch.zeros_like(target)
     superpixels = mask.unique().numel()
     for superpixel in range(superpixels):
@@ -116,24 +121,20 @@ def image_accuracy(target, mask):
     accuracy = torch.mean((target==target_s).float())
     return accuracy
 
-def dataset_accuracy(optimal=None):
+def dataset_accuracy():
     # Generate image list
     image_list, root = get_image_list()
-    image_acc = 0
-    if optimal:
-        mask_dir = "SegmentationClass/SuperPixels_optimal"
-        target_dir = "SegmentationClass/pre_encoded"
-    else:
-        mask_dir = "SegmentationClass/SuperPixels"
-        target_dir = "SegmentationClass/pre_encoded"
+    mask_acc = 0
+    mask_dir = "SegmentationClass/SuperPixels"
+    target_dir = "SegmentationClass/pre_encoded"
     for image_number in tqdm(image_list):
         mask_path = join(root, mask_dir, image_number + ".pt")
         target_path = join(root, target_dir, image_number + ".png")
         mask = torch.load(mask_path)
         target = io.imread(target_path)
         target = torch.from_numpy(target)
-        image_acc += image_accuracy(target, mask)
-    dataset_acc = image_acc / len(image_list)
+        mask_acc += mask_accuracy(target, mask)
+    dataset_acc = mask_acc / len(image_list)
     return dataset_acc
 
 def find_smallest_object():
