@@ -51,34 +51,6 @@ def create_masks(numSegments=100):
         torch.save(mask, image_save_path)
         torch.save(target_s, target_s_save_path)
 
-def create_optimal_masks(lower_bound=20, upper_bound=300, threshhold=0.98):
-    # Generate image list
-    image_list, root = get_image_list()
-    for image_number in tqdm(image_list):
-        image_name = image_number + ".jpg"
-        target_name = image_number + ".png"
-        image_path = join(root, "JPEGImages", image_name)
-        target_path = join(root, "SegmentationClass/pre_encoded", target_name)
-        image = img_as_float(io.imread(image_path))
-        target = io.imread(target_path)
-        target = torch.from_numpy(target)
-
-        mask, target_s = create_mask(image, target, lower_bound)
-        acc = image_accuracy(target, mask)
-        superpixels = lower_bound
-        while acc < threshhold and superpixels < upper_bound:
-            superpixels += 20
-            mask, target_s = create_mask(image, target, superpixels)
-            acc = image_accuracy(target, mask)
-#            print(acc, mask.unique().numel())
-
-        # Save for later
-        save_name = image_number + ".pt"
-        image_save_path = join(root, "SegmentationClass/SuperPixels_optimal", save_name)
-        target_s_save_path = join(root, "SegmentationClass/pre_encoded_superpixels_optimal", save_name)
-        torch.save(mask, image_save_path)
-        torch.save(target_s, target_s_save_path)
-
 def create_mask(image, target, numSegments):
     # Perform SLIC segmentation
     mask = slic(image, n_segments = numSegments, sigma = 5)
@@ -116,16 +88,12 @@ def image_accuracy(target, mask):
     accuracy = torch.mean((target==target_s).float())
     return accuracy
 
-def dataset_accuracy(optimal=None):
+def dataset_accuracy():
     # Generate image list
     image_list, root = get_image_list()
     image_acc = 0
-    if optimal:
-        mask_dir = "SegmentationClass/SuperPixels_optimal"
-        target_dir = "SegmentationClass/pre_encoded"
-    else:
-        mask_dir = "SegmentationClass/SuperPixels"
-        target_dir = "SegmentationClass/pre_encoded"
+    mask_dir = "SegmentationClass/SuperPixels"
+    target_dir = "SegmentationClass/pre_encoded"
     for image_number in tqdm(image_list):
         mask_path = join(root, mask_dir, image_number + ".pt")
         target_path = join(root, target_dir, image_number + ".png")
