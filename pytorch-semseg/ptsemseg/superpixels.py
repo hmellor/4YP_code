@@ -4,7 +4,6 @@ from tqdm import tqdm
 from skimage import io
 from skimage.util import img_as_float
 from skimage.segmentation import slic
-import time
 
 # For use during runtime
 def convert_to_superpixels(input, target, mask):
