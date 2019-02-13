@@ -50,6 +50,8 @@ def create_masks(numSegments=100):
         target_s_save_path = join(root, "SegmentationClass/pre_encoded_superpixels", save_name)
         torch.save(mask, image_save_path)
         torch.save(target_s, target_s_save_path)
+    print(dataset_accuracy())
+    print(find_size_variance())
 
 def create_mask(image, target, numSegments):
     # Perform SLIC segmentation
