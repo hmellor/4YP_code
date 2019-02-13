@@ -77,7 +77,7 @@ def get_image_list(split=None):
     return image_list, root
 
 # For superpixel validation
-def image_accuracy(target, mask):
+def mask_accuracy(target, mask):
     target_s = torch.zeros_like(target)
     superpixels = mask.unique().numel()
     for superpixel in range(superpixels):
@@ -91,7 +91,7 @@ def image_accuracy(target, mask):
 def dataset_accuracy():
     # Generate image list
     image_list, root = get_image_list()
-    image_acc = 0
+    mask_acc = 0
     mask_dir = "SegmentationClass/SuperPixels"
     target_dir = "SegmentationClass/pre_encoded"
     for image_number in tqdm(image_list):
@@ -100,8 +100,8 @@ def dataset_accuracy():
         mask = torch.load(mask_path)
         target = io.imread(target_path)
         target = torch.from_numpy(target)
-        image_acc += image_accuracy(target, mask)
-    dataset_acc = image_acc / len(image_list)
+        mask_acc += mask_accuracy(target, mask)
+    dataset_acc = mask_acc / len(image_list)
     return dataset_acc
 
 def find_smallest_object():
