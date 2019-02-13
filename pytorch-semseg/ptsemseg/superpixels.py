@@ -55,16 +55,47 @@ def create_masks(numSegments=100):
 
 def create_mask(image, target, numSegments):
     # Perform SLIC segmentation
-    mask = slic(image, n_segments = numSegments, sigma = 5)
+    mask = slic(image, n_segments = numSegments, slic_zero=True)
     mask = torch.from_numpy(mask)
 
     superpixels = mask.unique().numel()
-    target_s = torch.zeros(superpixels, dtype=torch.long)
+    overseg = superpixels
 
+    # Oversegmentation step
     for superpixel in range(superpixels):
-        # Define mask for cluster idx
+        overseg -= 1
+        # Define mask for superpixel
         segment_mask = mask==superpixel
-        # First take slices to select image, then apply mask, then 2D mode for majority class
+        # Classes in this superpixel
+        classes = target[segment_mask].unique(sorted=True)
+        # Check if superpixel is on target boundary
+        on_boundary = classes.numel() > 1
+#        print("Is sp  on boundary?:", on_boundary)
+        if on_boundary:
+            # Find how many of each class is in superpixel
+            class_count = torch.bincount(target[segment_mask])
+            # Remove zero elements
+            class_count = class_count[class_count.nonzero()].float()
+#            print(class_count)
+            minority_class = min(class_count)
+     #       print(minority_class, class_count.sum() *0.05)
+            above_threshold = minority_class > class_count.sum() * 0.05
+ #           print("Is minority class big enough:", above_threshold)
+            if above_threshold:
+                # Leaving one class in supperpixel be
+                for c in classes[1:]: 
+                    # Adding to the oversegmentation offset
+                    overseg += 1
+                    # Add offset to class c in the mask
+                    mask[segment_mask] += (target[segment_mask]==c).long()*overseg
+
+    # Redefine how many superpixels there are and create target_s
+    superpixels = mask.unique().numel()
+    target_s = torch.zeros(superpixels, dtype=torch.long)
+    for superpixel in range(superpixels):
+        # Define mask for superpixel
+        segment_mask = mask==superpixel
+        # Apply mask, then 2D mode for majority class
         target_s[superpixel] = target[segment_mask].mode()[0].mode()[0]
     return mask, target_s
 
