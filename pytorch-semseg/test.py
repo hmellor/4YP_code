@@ -16,14 +16,6 @@ from ptsemseg.models import get_model
 from ptsemseg.loader import get_loader, get_data_path
 from ptsemseg.utils import convert_state_dict
 
-#try:
-#    import pydensecrf.densecrf as dcrf
-#except:
-#    print(
-#        "Failed to import pydensecrf,\
-#           CRF post-processing will not work"
-#    )
-
 
 def test(args):
 
@@ -46,11 +38,6 @@ def test(args):
     )
 
     orig_size = img.shape[:-1]
-    if model_name in ["pspnet", "icnet", "icnetBN"]:
-        # uint8 with RGB mode, resize width and height which are odd numbers
-        img = misc.imresize(img, (orig_size[0] // 2 * 2 + 1, orig_size[1] // 2 * 2 + 1))
-    else:
-        img = misc.imresize(img, (loader.img_size[0], loader.img_size[1]))
 
     img = img[:, :, ::-1]
     img = img.astype(np.float64)
@@ -74,33 +61,8 @@ def test(args):
     images = img.to(device)
     outputs = model(images)
 
-    if args.dcrf:
-        unary = outputs.data.cpu().numpy()
-        unary = np.squeeze(unary, 0)
-        unary = -np.log(unary)
-        unary = unary.transpose(2, 1, 0)
-        w, h, c = unary.shape
-        unary = unary.transpose(2, 0, 1).reshape(loader.n_classes, -1)
-        unary = np.ascontiguousarray(unary)
-
-        resized_img = np.ascontiguousarray(resized_img)
-
-        d = dcrf.DenseCRF2D(w, h, loader.n_classes)
-        d.setUnaryEnergy(unary)
-        d.addPairwiseBilateral(sxy=5, srgb=3, rgbim=resized_img, compat=1)
-
-        q = d.inference(50)
-        mask = np.argmax(q, axis=0).reshape(w, h).transpose(1, 0)
-        decoded_crf = loader.decode_segmap(np.array(mask, dtype=np.uint8))
-        dcrf_path = args.out_path[:-4] + "_drf.png"
-        misc.imsave(dcrf_path, decoded_crf)
-        print("Dense CRF Processed Mask Saved at: {}".format(dcrf_path))
-
     pred = np.squeeze(outputs.data.max(1)[1].cpu().numpy(), axis=0)
-    if model_name in ["pspnet", "icnet", "icnetBN"]:
-        pred = pred.astype(np.float32)
-        # float32 with F mode, resize back to orig_size
-        pred = misc.imresize(pred, orig_size, "nearest", mode="F")
+
 
     decoded = loader.decode_segmap(pred)
     print("Classes found: ", np.unique(pred))
@@ -141,21 +103,6 @@ if __name__ == "__main__":
     )
     parser.set_defaults(img_norm=True)
 
-    parser.add_argument(
-        "--dcrf",
-        dest="dcrf",
-        action="store_true",
-        help="Enable DenseCRF based post-processing | \
-                              False by default",
-    )
-    parser.add_argument(
-        "--no-dcrf",
-        dest="dcrf",
-        action="store_false",
-        help="Disable DenseCRF based post-processing | \
-                              False by default",
-    )
-    parser.set_defaults(dcrf=False)
 
     parser.add_argument(
         "--img_path", nargs="?", type=str, default=None, help="Path of the input image"
