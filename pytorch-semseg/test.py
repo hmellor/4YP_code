@@ -16,13 +16,13 @@ from ptsemseg.models import get_model
 from ptsemseg.loader import get_loader, get_data_path
 from ptsemseg.utils import convert_state_dict
 
-try:
-    import pydensecrf.densecrf as dcrf
-except:
-    print(
-        "Failed to import pydensecrf,\
-           CRF post-processing will not work"
-    )
+#try:
+#    import pydensecrf.densecrf as dcrf
+#except:
+#    print(
+#        "Failed to import pydensecrf,\
+#           CRF post-processing will not work"
+#    )
 
 
 def test(args):
@@ -64,7 +64,8 @@ def test(args):
     img = torch.from_numpy(img).float()
 
     # Setup Model
-    model = get_model(model_name, n_classes, version=args.dataset)
+    model_dict = {"arch": model_name}
+    model = get_model(model_dict, n_classes, version=args.dataset)
     state = convert_state_dict(torch.load(args.model_path)["model_state"])
     model.load_state_dict(state)
     model.eval()
