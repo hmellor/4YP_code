@@ -19,6 +19,6 @@ training:
         weight_decay: 1.0e-5
     loss:
         name: 'zehan_iou'
-        superpixels: 'True'
+        superpixels: True
     lr_schedule:
     resume: #runs/config/80202/fcn8s_pascal.pkl
