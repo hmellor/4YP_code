@@ -30,6 +30,7 @@ from ptsemseg.optimizers import get_optimizer
 from ptsemseg.superpixels import convert_to_superpixels
 from ptsemseg.superpixels import convert_to_pixels
 
+import scipy.misc as misc
 from tensorboardX import SummaryWriter
 
 def flatten(d, parent_key='', sep='_'):
@@ -197,6 +198,11 @@ def train(cfg, writer, logger_old, name):
             gt = labels.data.cpu().numpy()
             running_metrics_train.update(gt, pred)
             train_loss_meter.update(loss.item())
+
+            decoded = t_loader.decode_segmap(np.squeeze(pred, axis=0))
+            misc.imsave("./{}.png".format(i), decoded)
+            image_save = np.transpose(np.squeeze(images.data.cpu().numpy(), axis=0), (1,2,0))
+            misc.imsave("./{}.jpg".format(i), image_save)
 
             # accumulate gradients based on the accumulation batch size
             if i % it_per_step == 1 or it_per_step == 1:
