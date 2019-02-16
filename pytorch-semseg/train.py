@@ -28,6 +28,7 @@ from ptsemseg.augmentations import get_composed_augmentations
 from ptsemseg.schedulers import get_scheduler
 from ptsemseg.optimizers import get_optimizer
 from ptsemseg.superpixels import convert_to_superpixels
+from ptsemseg.superpixels import convert_to_pixels
 
 from tensorboardX import SummaryWriter
 
@@ -187,6 +188,7 @@ def train(cfg, writer, logger_old, name):
             if use_superpixels:
                 outputs_s, labels_s, sizes = convert_to_superpixels(outputs, labels_s, masks)
                 loss = loss_fn(input=outputs_s, target=labels_s, size=sizes)
+                outputs = convert_to_pixels(outputs_s, outputs, masks)
             else:
                 loss = loss_fn(input=outputs, target=labels)
 
@@ -242,6 +244,7 @@ def train(cfg, writer, logger_old, name):
                         if use_superpixels:
                             outputs_s, labels_val_s, sizes_val = convert_to_superpixels(outputs, labels_val_s, masks_val)
                             val_loss = loss_fn(input=outputs_s, target=labels_val_s, size=sizes_val)
+                            outputs = convert_to_pixels(outputs_s, outputs, masks_val)
                         else:
                             val_loss = loss_fn(input=outputs, target=labels_val)
                         pred = outputs.data.max(1)[1].cpu().numpy()
@@ -327,6 +330,18 @@ def train(cfg, writer, logger_old, name):
                     torch.save(state, save_path)
 
             if (i + 1) == train_len*(cfg['training']['epochs']):
+                state = {
+                    "epoch": i + 1,
+                    "model_state": model.state_dict(),
+                    "optimizer_state": optimizer.state_dict(),
+                    "scheduler_state": scheduler.state_dict(),
+                    "best_iou": best_iou,
+                }
+                save_path = os.path.join(writer.file_writer.get_logdir(),
+                                         "{}_{}_final_model.pkl".format(
+                                             cfg['model']['arch'],
+                                             cfg['data']['dataset']))
+                torch.save(state, save_path)
                 flag = False
                 break
 
