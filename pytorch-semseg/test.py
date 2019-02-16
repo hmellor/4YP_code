@@ -61,17 +61,27 @@ def test(args):
 
     images = img.to(device)
     outputs = model(images)
-    if args.mask_path:
-        print("Read Image Mask from : {}".format(args.mask_path))
-        mask = torch.load(args.mask_path)
-        mask = mask.to(device)
-        outputs = to_super_to_pixels(outputs, mask)
-    pred = np.squeeze(outputs.data.max(1)[1].cpu().numpy(), axis=0)
 
+    pred = np.squeeze(outputs.data.max(1)[1].cpu().numpy(), axis=0)
 
     decoded = loader.decode_segmap(pred)
     print("Classes found: ", np.unique(pred))
     misc.imsave(args.out_path, decoded)
+    print("Segmentation Mask Saved at: {}".format(args.out_path))
+
+
+    if args.mask_path:
+        print("Read Image Mask from : {}".format(args.mask_path))
+        mask = torch.load(args.mask_path)
+        mask = mask.to(device)
+        outputs1 = to_super_to_pixels(outputs, mask)
+    pred1 = np.squeeze(outputs1.data.max(1)[1].cpu().numpy(), axis=0)
+
+
+
+    decoded1 = loader.decode_segmap(pred1)
+    print("Classes found: ", np.unique(pred1))
+    misc.imsave("./segs3.jpg", decoded1)
     print("Segmentation Mask Saved at: {}".format(args.out_path))
 
 
