@@ -27,6 +27,19 @@ def convert_to_superpixels(input, target, mask):
     output = (output.t()/size).t()
     return output, target.view(-1), size
 
+def convert_to_pixels(input, output, mask):
+    #print(input.shape)
+    #print(outputs.shape)
+    n, c, h, w = output.size()
+    for k in range(c):
+        output[0,k,:,:] = torch.gather(input[:,k], 0, mask.view(-1)).view(h,w)
+    return output
+
+def to_super_to_pixels(input, mask):
+    target = torch.tensor([])
+    input_s, _, _ = convert_to_superpixels(input, target, mask)
+    output = convert_to_pixels(input_s, input, mask)
+    return output
 # For pre-processing
 def create_masks(numSegments=100):
     # Generate image list
@@ -82,7 +95,7 @@ def create_mask(image, target, numSegments):
  #           print("Is minority class big enough:", above_threshold)
             if above_threshold:
                 # Leaving one class in supperpixel be
-                for c in classes[1:]: 
+                for c in classes[1:]:
                     # Adding to the oversegmentation offset
                     overseg += 1
                     # Add offset to class c in the mask
