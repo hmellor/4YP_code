@@ -15,6 +15,7 @@ from tqdm import tqdm
 from ptsemseg.models import get_model
 from ptsemseg.loader import get_loader, get_data_path
 from ptsemseg.utils import convert_state_dict
+from ptsemseg.superpixels import to_super_to_pixels
 
 
 def test(args):
@@ -60,7 +61,11 @@ def test(args):
 
     images = img.to(device)
     outputs = model(images)
-
+    if args.mask_path:
+        print("Read Image Mask from : {}".format(args.mask_path))
+        mask = torch.load(args.mask_path)
+        mask = mask.to(device)
+        outputs = to_super_to_pixels(outputs, mask)
     pred = np.squeeze(outputs.data.max(1)[1].cpu().numpy(), axis=0)
 
 
@@ -106,6 +111,9 @@ if __name__ == "__main__":
 
     parser.add_argument(
         "--img_path", nargs="?", type=str, default=None, help="Path of the input image"
+    )
+    parser.add_argument(
+        "--mask_path", nargs="?", type=str, default=None, help="Path of the superpixel mask"
     )
     parser.add_argument(
         "--out_path",
