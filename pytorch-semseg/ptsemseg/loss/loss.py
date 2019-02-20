@@ -32,7 +32,7 @@ def cross_entropy2d(input, target, weight=None, size_average=True):
 def zehan_iou(input, target, size):
     n_pixels, c = input.size()
     all_classes = torch.arange(0,c, device = input.device)
-    gt_classes = target.unique(sorted=True)[1:]
+    gt_classes = target.unique(sorted=True)
     loss = torch.full((gt_classes.numel(),), -float('inf'), device=input.device)
     for i, gt_class in enumerate(gt_classes):
         theta=input[:,gt_class]-input[:,all_classes[all_classes.ne(gt_class)]].logsumexp(1)
