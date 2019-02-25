@@ -32,6 +32,7 @@ from ptsemseg.superpixels import convert_to_pixels
 
 from tensorboardX import SummaryWriter
 
+
 def flatten(d, parent_key='', sep='_'):
     items = []
     for k, v in d.items():
@@ -41,6 +42,7 @@ def flatten(d, parent_key='', sep='_'):
         else:
             items.append((new_key, v))
     return dict(items)
+
 
 def train(cfg, writer, logger_old, name):
 
@@ -112,8 +114,9 @@ def train(cfg, writer, logger_old, name):
     if cfg['training']['resume'] is not None:
         if os.path.isfile(cfg['training']['resume']):
             logger_old.info(
-                "Loading model and optimizer from checkpoint '{}'".format(cfg['training']['resume'])
-                )
+                "Loading model and optimizer from checkpoint '{}'".format(
+                    cfg['training']['resume'])
+            )
             checkpoint = torch.load(cfg['training']['resume'])
             model.load_state_dict(checkpoint["model_state"])
             optimizer.load_state_dict(checkpoint["optimizer_state"])
@@ -125,7 +128,8 @@ def train(cfg, writer, logger_old, name):
                 )
             )
         else:
-            logger_old.info("No checkpoint found at '{}'".format(cfg['training']['resume']))
+            logger_old.info("No checkpoint found at '{}'".format(
+                cfg['training']['resume']))
 
     val_loss_meter = averageMeter()
     train_loss_meter = averageMeter()
@@ -139,25 +143,26 @@ def train(cfg, writer, logger_old, name):
     flag = True
 
     # Prepare logging
-    xp_name = cfg['model']['arch']+'_'+cfg['training']['loss']['name']+'_'+name
-    xp=logger.Experiment(xp_name,
-                         use_visdom=True, visdom_opts={'server': 'http://localhost',
-                         'port': 8098}, time_indexing=False, xlabel='Epoch')
+    xp_name = cfg['model']['arch'] + '_' + \
+        cfg['training']['loss']['name'] + '_' + name
+    xp = logger.Experiment(xp_name,
+                           use_visdom=True, visdom_opts={'server': 'http://localhost',
+                                                         'port': 8098}, time_indexing=False, xlabel='Epoch')
     # log the hyperparameters of the experiment
     xp.log_config(flatten(cfg))
     # create parent metric for training metrics (easier interface)
     xp.ParentWrapper(tag='train', name='parent',
-                    children=(xp.AvgMetric(name="loss"),
-                              xp.AvgMetric(name='acc'),
-                              xp.AvgMetric(name='acccls'),
-                              xp.AvgMetric(name='fwavacc'),
-                              xp.AvgMetric(name='meaniu')))
+                     children=(xp.AvgMetric(name="loss"),
+                               xp.AvgMetric(name='acc'),
+                               xp.AvgMetric(name='acccls'),
+                               xp.AvgMetric(name='fwavacc'),
+                               xp.AvgMetric(name='meaniu')))
     xp.ParentWrapper(tag='val', name='parent',
-                    children=(xp.AvgMetric(name="loss"),
-                              xp.AvgMetric(name='acc'),
-                              xp.AvgMetric(name='acccls'),
-                              xp.AvgMetric(name='fwavacc'),
-                              xp.AvgMetric(name='meaniu')))
+                     children=(xp.AvgMetric(name="loss"),
+                               xp.AvgMetric(name='acc'),
+                               xp.AvgMetric(name='acccls'),
+                               xp.AvgMetric(name='fwavacc'),
+                               xp.AvgMetric(name='meaniu')))
     best_loss = xp.BestMetric(tag='val-best', name='loss', mode='min')
     best_acc = xp.BestMetric(tag='val-best', name='acc')
     best_acccls = xp.BestMetric(tag='val-best', name='acccls')
@@ -172,7 +177,7 @@ def train(cfg, writer, logger_old, name):
 
     it_per_step = cfg['training']['acc_batch_size']
     eff_batch_size = cfg['training']['batch_size'] * it_per_step
-    while i <= train_len*(cfg['training']['epochs']) and flag:
+    while i <= train_len * (cfg['training']['epochs']) and flag:
         for (images, labels, labels_s, masks) in trainloader:
             i += 1
             j += 1
@@ -186,7 +191,8 @@ def train(cfg, writer, logger_old, name):
 
             outputs = model(images)
             if use_superpixels:
-                outputs_s, labels_s, sizes = convert_to_superpixels(outputs, labels_s, masks)
+                outputs_s, labels_s, sizes = convert_to_superpixels(
+                    outputs, labels_s, masks)
                 loss = loss_fn(input=outputs_s, target=labels_s, size=sizes)
                 outputs = convert_to_pixels(outputs_s, outputs, masks)
             else:
@@ -210,12 +216,12 @@ def train(cfg, writer, logger_old, name):
 
             time_meter.update(time.time() - start_ts)
             # training logs
-            if (j + 1) % (cfg['training']['print_interval']*it_per_step) == 0:
+            if (j + 1) % (cfg['training']['print_interval'] * it_per_step) == 0:
                 fmt_str = "Epoch [{}/{}] Iter [{}/{:d}] Loss: {:.4f}  Time/Image: {:.4f}"
                 total_iter = int(train_len / eff_batch_size)
                 total_epoch = int(cfg['training']['epochs'])
                 current_epoch = ceil((i + 1) / train_len)
-                current_iter  = int((j + 1 )/ it_per_step)
+                current_iter = int((j + 1) / it_per_step)
                 print_str = fmt_str.format(current_epoch,
                                            total_epoch,
                                            current_iter,
@@ -225,11 +231,11 @@ def train(cfg, writer, logger_old, name):
 
                 print(print_str)
                 logger_old.info(print_str)
-                writer.add_scalar('loss/train_loss', loss.item(), i+1)
+                writer.add_scalar('loss/train_loss', loss.item(), i + 1)
                 time_meter.reset()
             # end of epoch evaluation
             if (i + 1) % train_len == 0 or \
-               (i + 1) == train_len*(cfg['training']['epochs']):
+               (i + 1) == train_len * (cfg['training']['epochs']):
                 optimizer.step()
                 optimizer.zero_grad()
                 model.eval()
@@ -242,55 +248,63 @@ def train(cfg, writer, logger_old, name):
 
                         outputs = model(images_val)
                         if use_superpixels:
-                            outputs_s, labels_val_s, sizes_val = convert_to_superpixels(outputs, labels_val_s, masks_val)
-                            val_loss = loss_fn(input=outputs_s, target=labels_val_s, size=sizes_val)
-                            outputs = convert_to_pixels(outputs_s, outputs, masks_val)
+                            outputs_s, labels_val_s, sizes_val = convert_to_superpixels(
+                                outputs, labels_val_s, masks_val)
+                            val_loss = loss_fn(
+                                input=outputs_s, target=labels_val_s, size=sizes_val)
+                            outputs = convert_to_pixels(
+                                outputs_s, outputs, masks_val)
                         else:
-                            val_loss = loss_fn(input=outputs, target=labels_val)
+                            val_loss = loss_fn(
+                                input=outputs, target=labels_val)
                         pred = outputs.data.max(1)[1].cpu().numpy()
                         gt = labels_val.data.cpu().numpy()
 
                         running_metrics_val.update(gt, pred)
                         val_loss_meter.update(val_loss.item())
 
-                writer.add_scalar('loss/val_loss', val_loss_meter.avg, i+1)
-                writer.add_scalar('loss/train_loss', train_loss_meter.avg, i+1)
-                logger_old.info("Epoch %d Val Loss: %.4f" % (int((i + 1)/train_len), val_loss_meter.avg))
-                logger_old.info("Epoch %d Train Loss: %.4f" % (int((i + 1)/train_len), train_loss_meter.avg))
+                writer.add_scalar('loss/val_loss', val_loss_meter.avg, i + 1)
+                writer.add_scalar('loss/train_loss',
+                                  train_loss_meter.avg, i + 1)
+                logger_old.info("Epoch %d Val Loss: %.4f" %
+                                (int((i + 1) / train_len), val_loss_meter.avg))
+                logger_old.info("Epoch %d Train Loss: %.4f" % (
+                    int((i + 1) / train_len), train_loss_meter.avg))
 
                 score, class_iou = running_metrics_val.get_scores()
                 print("Validation metrics:")
                 for k, v in score.items():
                     print(k, v)
                     logger_old.info('{}: {}'.format(k, v))
-                    writer.add_scalar('val_metrics/{}'.format(k), v, i+1)
+                    writer.add_scalar('val_metrics/{}'.format(k), v, i + 1)
 
                 for k, v in class_iou.items():
                     logger_old.info('{}: {}'.format(k, v))
-                    writer.add_scalar('val_metrics/cls_{}'.format(k), v, i+1)
+                    writer.add_scalar('val_metrics/cls_{}'.format(k), v, i + 1)
 
-                xp.Parent_Val.update(loss = val_loss_meter.avg,
-                                    acc     = score['Overall Acc: \t'],
-                                    acccls = score['Mean Acc : \t'],
-                                    fwavacc = score['FreqW Acc : \t'],
-                                    meaniu = score['Mean IoU : \t'])
+                xp.Parent_Val.update(loss=val_loss_meter.avg,
+                                     acc=score['Overall Acc: \t'],
+                                     acccls=score['Mean Acc : \t'],
+                                     fwavacc=score['FreqW Acc : \t'],
+                                     meaniu=score['Mean IoU : \t'])
 
                 score, class_iou = running_metrics_train.get_scores()
                 print("Training metrics:")
                 for k, v in score.items():
                     print(k, v)
                     logger_old.info('{}: {}'.format(k, v))
-                    writer.add_scalar('train_metrics/{}'.format(k), v, i+1)
+                    writer.add_scalar('train_metrics/{}'.format(k), v, i + 1)
 
                 for k, v in class_iou.items():
                     logger_old.info('{}: {}'.format(k, v))
-                    writer.add_scalar('train_metrics/cls_{}'.format(k), v, i+1)
+                    writer.add_scalar(
+                        'train_metrics/cls_{}'.format(k), v, i + 1)
 
-                xp.Parent_Train.update(loss = train_loss_meter.avg,
-                                    acc     = score['Overall Acc: \t'],
-                                    acccls = score['Mean Acc : \t'],
-                                    fwavacc = score['FreqW Acc : \t'],
-                                    meaniu = score['Mean IoU : \t'])
+                xp.Parent_Train.update(loss=train_loss_meter.avg,
+                                       acc=score['Overall Acc: \t'],
+                                       acccls=score['Mean Acc : \t'],
+                                       fwavacc=score['FreqW Acc : \t'],
+                                       meaniu=score['Mean IoU : \t'])
 
                 xp.Parent_Val.log_and_reset()
                 xp.Parent_Train.log_and_reset()
@@ -302,7 +316,8 @@ def train(cfg, writer, logger_old, name):
 
                 visdir = os.path.join(
                     'runs',
-                    "{}_{}".format(cfg['model']['arch'],cfg['training']['loss']['name']),
+                    "{}_{}".format(cfg['model']['arch'],
+                                   cfg['training']['loss']['name']),
                     name,
                     'plots.json'
                 )
@@ -329,7 +344,7 @@ def train(cfg, writer, logger_old, name):
                                                  cfg['data']['dataset']))
                     torch.save(state, save_path)
 
-            if (i + 1) == train_len*(cfg['training']['epochs']):
+            if (i + 1) == train_len * (cfg['training']['epochs']):
                 state = {
                     "epoch": i + 1,
                     "model_state": model.state_dict(),
@@ -344,6 +359,7 @@ def train(cfg, writer, logger_old, name):
                 torch.save(state, save_path)
                 flag = False
                 break
+
 
 if __name__ == "__main__":
     run_id = random.randint(1, 100000)

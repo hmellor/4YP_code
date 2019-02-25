@@ -79,7 +79,7 @@ class pascalVOCLoader(data.Dataset):
             img_size if isinstance(img_size, tuple) else (img_size, img_size)
         )
         splits = ["train", "val", "trainval", "train_binary",
-            "val_binary", "train_super", "val_super"]
+                  "val_binary", "train_super", "val_super"]
         for split in splits:
             path = pjoin(self.root, "ImageSets/Segmentation", split + ".txt")
             file_list = tuple(open(path, "r"))
@@ -102,7 +102,8 @@ class pascalVOCLoader(data.Dataset):
     def __getitem__(self, index):
         im_name = self.files[self.split][index]
         im_path = pjoin(self.root, "JPEGImages", im_name + ".jpg")
-        lbl_path = pjoin(self.root, "SegmentationClass/pre_encoded", im_name + ".png")
+        lbl_path = pjoin(
+            self.root, "SegmentationClass/pre_encoded", im_name + ".png")
         im = Image.open(im_path)
         lbl = Image.open(lbl_path)
         if self.augmentations is not None:
@@ -110,8 +111,10 @@ class pascalVOCLoader(data.Dataset):
         if self.is_transform:
             im, lbl = self.transform(im, lbl)
         if self.superpixels:
-            mask_path = pjoin(self.root, "SegmentationClass/SuperPixels", im_name + ".pt")
-            target_path = pjoin(self.root, "SegmentationClass/pre_encoded_superpixels", im_name + ".pt")
+            mask_path = pjoin(
+                self.root, "SegmentationClass/SuperPixels", im_name + ".pt")
+            target_path = pjoin(
+                self.root, "SegmentationClass/pre_encoded_superpixels", im_name + ".pt")
             mask = torch.load(mask_path)
             lbl_s = torch.load(target_path)
             return im, lbl, lbl_s, mask

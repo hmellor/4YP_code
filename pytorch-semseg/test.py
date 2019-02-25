@@ -1,16 +1,8 @@
-import sys, os
+import os
 import torch
-import visdom
 import argparse
-import timeit
 import numpy as np
 import scipy.misc as misc
-import torch.nn as nn
-import torch.nn.functional as F
-import torchvision.models as models
-
-from torch.utils import data
-from tqdm import tqdm
 
 from ptsemseg.models import get_model
 from ptsemseg.loader import get_loader, get_data_path
@@ -33,12 +25,6 @@ def test(args):
     data_path = get_data_path(args.dataset)
     loader = data_loader(data_path, is_transform=True, img_norm=args.img_norm)
     n_classes = loader.n_classes
-
-    resized_img = misc.imresize(
-        img, (loader.img_size[0], loader.img_size[1]), interp="bicubic"
-    )
-
-    orig_size = img.shape[:-1]
 
     img = img[:, :, ::-1]
     img = img.astype(np.float64)
@@ -67,7 +53,6 @@ def test(args):
         mask = mask.to(device)
         outputs = to_super_to_pixels(outputs, mask)
     pred = np.squeeze(outputs.data.max(1)[1].cpu().numpy(), axis=0)
-
 
     decoded = loader.decode_segmap(pred)
     print("Classes found: ", np.unique(pred))
@@ -107,7 +92,6 @@ if __name__ == "__main__":
                               True by default",
     )
     parser.set_defaults(img_norm=True)
-
 
     parser.add_argument(
         "--img_path", nargs="?", type=str, default=None, help="Path of the input image"
