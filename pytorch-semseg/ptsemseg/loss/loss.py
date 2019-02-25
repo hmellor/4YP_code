@@ -52,7 +52,17 @@ def zehan_iou(input, target, size):
         #print(U.size(), indices.size(), sigma.size(), I.size())
         sigma -= I.float() / U.float()
         sigma[1:] += theta_hat[U[1:]-n_gt-1]
+        if i > 0:
+            import matplotlib.pyplot as plt
+            fig2 = plt.figure(2)
+            plt.plot(U.cpu().detach().numpy(), sigma.cpu().detach().numpy())
+            fig2.suptitle('Sigma against U for object class')
+            plt.xlabel('U')
+            plt.ylabel('sigma')
+            plt.show()
         loss[i] = sigma.max()
+        if i > 0:
+            print(sigma.argmax())
         loss[i] += 1 - theta[mask_gt].sum()
     return loss.mean()
 
