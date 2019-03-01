@@ -25,7 +25,11 @@ def cross_entropy2d(input, target, weight=None, size_average=True):
     target = target.view(-1)
 #    print('input: ', input.size() ,', target: ', target.size())
     loss = F.cross_entropy(
-        input, target, weight=weight, size_average=size_average, ignore_index=250
+        input,
+        target,
+        weight=weight,
+        size_average=size_average,
+        ignore_index=250
     )
     return loss
 
@@ -37,22 +41,44 @@ def zehan_iou(input, target, size):
     loss = torch.full((gt_classes.numel(),),
                       - float('inf'), device=input.device)
     for i, gt_class in enumerate(gt_classes):
-        theta = input[:, gt_class] - input[:,
-                                           all_classes[all_classes.ne(gt_class)]].logsumexp(1)
+        theta = input[:, gt_class]
+        theta -= input[:, all_classes[all_classes.ne(gt_class)]].logsumexp(1)
         mask_gt = target.eq(gt_class)
         mask_not_gt = target.ne(gt_class)
 
         n_gt = mask_gt.long().sum()
         # Zehan's algorithm
-        # Sort all scores that are supposed to be background and sum them cumulatively
+        # Sort all scores that are supposed to be background and sum them
+        # cumulatively.
         theta_tilde = theta[mask_not_gt].sort(descending=True)[0]
         theta_hat = theta_tilde.cumsum(0)
-        # Evaluate loss for all possible values of U from the min U to all the super-pixels
-        U = torch.arange(n_gt, n_pixels + 1, device=input.device)
+        # Evaluate loss for all possible values of U from the min U to all the
+        # super-pixels.
+        # Initialise lower/upper bounds and sample size.
+        lb = n_gt
+        ub = n_pixels
+        ss = 300
+        # While sample width is greater than sample size
+        while ub - lb > ss:
+            # Sparsely sample U
+            U = torch.linspace(lb, ub, steps=ss, device=input.device).long()
+            # Calculate sigma as normal
+            indices = theta[mask_gt].repeat(U.numel(), 1).t() >= 1. / U.float()
+            sigma = (indices.float().t() * theta[mask_gt]).sum(1)
+            I = indices.sum(0)
+            sigma -= I.float() / U.float()
+            sigma[1:] += theta_hat[U[1:] - n_gt - 1]
+            # Find location of current sample maximum
+            sample_max = torch.argmax(sigma)
+            # Update sample width to be 1 point above and below sample max
+            lb = U[sample_max - 1]
+            ub = U[sample_max + 1]
+        # Calculate sigma as normal using reduced, dense U that contains
+        # global max.
+        U = torch.arange(lb, ub + 1, device=input.device)
         indices = theta[mask_gt].repeat(U.numel(), 1).t() >= 1. / U.float()
         sigma = (indices.float().t() * theta[mask_gt]).sum(1)
         I = indices.sum(0)
-        #print(U.size(), indices.size(), sigma.size(), I.size())
         sigma -= I.float() / U.float()
         sigma[1:] += theta_hat[U[1:] - n_gt - 1]
         loss[i] = sigma.max()

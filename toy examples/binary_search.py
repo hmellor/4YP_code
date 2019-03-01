@@ -51,7 +51,7 @@ def zehan_iou_bin(input, target, size):
         theta_tilde = theta[mask_not_gt].sort(descending=True)[0]
         theta_hat = theta_tilde.cumsum(0)
         # Evaluate loss for all possible values of U from the min U to all the super-pixels
-        
+
         lb = n_gt
         ub = n_pixels
     #    print("lower bound:", lb,", upper bound:", ub)
@@ -68,8 +68,8 @@ def zehan_iou_bin(input, target, size):
             ub = U[sample_max + 1]
           #  print("lower bound:", lb,", upper bound:", ub)
           #  print("range of U:", ub - lb)
-        
-        U = torch.linspace(lb, ub, steps = 300, device=input.device).long()
+
+        U = torch.arange(lb, ub + 1, device=input.device)
         indices = theta[mask_gt].repeat(U.numel(), 1).t() >= 1. / U.float()
         sigma = (indices.float().t() * theta[mask_gt]).sum(1)
         I = indices.sum(0)
@@ -80,16 +80,16 @@ def zehan_iou_bin(input, target, size):
     return loss.mean(), sigma
 
 
-n_pixels = 3000
+n_pixels = 300
 c_classes = 20
 size = None
 torch.manual_seed(0)
 
-for _ in range(1):
+for _ in range(1000):
     target = torch.randint(0, 2, (n_pixels,)) * uniform(0, c_classes)
     if target.sum() == 0:
         continue
     input = torch.zeros(n_pixels, c_classes).uniform_(-10, 10)
     loss, _ = zehan_iou(input, target, size)
-    loss_bin, _ = zehan_iou_bin(input, target, size)    
+    loss_bin, _ = zehan_iou_bin(input, target, size)
     assert loss - loss_bin == 0, "loss:{}, loss_bin:{}".format(loss, loss_bin)
