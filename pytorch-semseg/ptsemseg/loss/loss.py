@@ -34,7 +34,28 @@ def cross_entropy2d(input, target, weight=None, size_average=True):
     return loss
 
 
-def zehan_iou(input, target, size):
+def zehan_iou(input, target, size=None):
+    if size is not None:
+        pass
+    else:
+        n, c, h, w = input.size()
+        nt, ht, wt = target.size()
+
+        # Handle inconsistent size between input and target
+        if h > ht and w > wt:  # upsample labels
+            print('resizing, prediction too large')
+            target = target.unsequeeze(1)
+            target = F.upsample(target, size=(h, w), mode="nearest")
+            target = target.sequeeze(1)
+        elif h < ht and w < wt:  # upsample images
+            print('resizing, prediction too small')
+            input = F.upsample(input, size=(ht, wt), mode="bilinear")
+        elif h != ht and w != wt:
+            raise Exception("Only support upsampling")
+
+        # Reshape to nxc and nx1 respectively
+        input = input.transpose(1, 2).transpose(2, 3).contiguous().view(-1, c)
+        target = target.view(-1)
     n_pixels, c = input.size()
     all_classes = torch.arange(0, c, device=input.device)
     gt_classes = target.unique(sorted=True)
