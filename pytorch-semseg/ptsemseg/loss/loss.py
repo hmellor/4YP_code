@@ -92,8 +92,15 @@ def zehan_iou(input, target, size=None):
             # Find location of current sample maximum
             sample_max = torch.argmax(sigma)
             # Update sample width to be 1 point above and below sample max
-            lb = U[sample_max - 1]
-            ub = U[sample_max + 1]
+            if sample_max == 0:
+                lb = U[0]
+                ub = lb + 1
+            elif sample_max == ss-1:
+                lb = U[ss-1]
+                ub = lb + 1
+            else:
+                lb = U[sample_max - 1]
+                ub = U[sample_max + 1]
         # Calculate sigma as normal using reduced, dense U that contains
         # global max.
         U = torch.arange(lb, ub + 1, device=input.device)
