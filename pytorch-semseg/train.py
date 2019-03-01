@@ -1,22 +1,16 @@
 import os
-import sys
 import yaml
 import time
 import shutil
 import torch
-import visdom
 import random
 import argparse
-import datetime
 import logger
 import numpy as np
-import torch.nn as nn
-import torch.nn.functional as F
-import torchvision.models as models
 
 from torch.utils import data
 from tqdm import tqdm
-from math import ceil, floor
+from math import ceil
 from collections import MutableMapping
 
 from ptsemseg.models import get_model
