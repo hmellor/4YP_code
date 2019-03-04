@@ -58,7 +58,7 @@ def zehan_iou(input, target, size=None):
     loss = torch.full((gt_classes.numel(),),
                       - float('inf'), device=input.device)
     for i, gt_class in enumerate(gt_classes):
-        theta = input[:, gt_class]
+        theta = input[:, gt_class].clone()
         theta -= input[:, all_classes[all_classes.ne(gt_class)]].logsumexp(1)
         mask_gt = target.eq(gt_class)
         mask_not_gt = target.ne(gt_class)
@@ -89,11 +89,11 @@ def zehan_iou(input, target, size=None):
             sample_max = torch.argmax(sigma)
             # Update sample width to be 1 point above and below sample max
             if sample_max == 0:
-                lb = U[0]
-                ub = lb + 1
+                lb = U[sample_max]
+                ub = U[sample_max + 1]
             elif sample_max == ss-1:
-                lb = U[ss-1]
-                ub = lb + 1
+                lb = U[sample_max - 1]
+                ub = U[sample_max]
             else:
                 lb = U[sample_max - 1]
                 ub = U[sample_max + 1]
@@ -107,7 +107,7 @@ def zehan_iou(input, target, size=None):
         sigma[1:] += theta_hat[U[1:] - n_gt - 1]
         loss[i] = sigma.max()
         loss[i] += 1 - theta[mask_gt].sum()
-    return loss.mean()
+    return loss.mean() / n_pixels
 
 
 def macro_average(input, target, size=None):
