@@ -6,7 +6,6 @@ import torch
 import numpy as np
 import scipy.misc as m
 import scipy.io as io
-#import matplotlib.pyplot as plt
 import glob
 
 from PIL import Image
@@ -209,11 +208,7 @@ class pascalVOCLoader(data.Dataset):
         rgb[:, :, 0] = r / 255.0
         rgb[:, :, 1] = g / 255.0
         rgb[:, :, 2] = b / 255.0
-        if plot:
-            plt.imshow(rgb)
-            plt.show()
-        else:
-            return rgb
+        return rgb
 
     def setup_annotations(self):
         """Sets up Berkley annotations by adding image indices to the
