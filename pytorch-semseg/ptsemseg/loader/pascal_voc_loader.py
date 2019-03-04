@@ -6,7 +6,6 @@ import torch
 import numpy as np
 import scipy.misc as m
 import scipy.io as io
-#import matplotlib.pyplot as plt
 import glob
 
 from PIL import Image

@@ -1,8 +1,5 @@
 import torch
-import numpy as np
-import torch.nn as nn
 import torch.nn.functional as F
-import time
 
 
 def cross_entropy2d(input, target, weight=None, size_average=True):
@@ -23,9 +20,12 @@ def cross_entropy2d(input, target, weight=None, size_average=True):
 
     input = input.transpose(1, 2).transpose(2, 3).contiguous().view(-1, c)
     target = target.view(-1)
-#    print('input: ', input.size() ,', target: ', target.size())
     loss = F.cross_entropy(
-        input, target, weight=weight, size_average=size_average, ignore_index=250
+        input,
+        target,
+        weight=weight,
+        size_average=size_average,
+        ignore_index=250
     )
     return loss
 
@@ -52,7 +52,7 @@ def zehan_iou(input, target, size):
         indices = theta[mask_gt].repeat(U.numel(), 1).t() >= 1. / U.float()
         sigma = (indices.float().t() * theta[mask_gt]).sum(1)
         I = indices.sum(0)
-        #print(U.size(), indices.size(), sigma.size(), I.size())
+        # print(U.size(), indices.size(), sigma.size(), I.size())
         sigma -= I.float() / U.float()
         sigma[1:] += theta_hat[U[1:] - n_gt - 1]
         loss[i] = sigma.max()
