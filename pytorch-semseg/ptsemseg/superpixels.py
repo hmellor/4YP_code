@@ -119,8 +119,8 @@ def create_mask(image, target, numSegments, limOverseg):
     for superpixel in range(superpixels):
         # Define mask for superpixel
         segment_mask = mask == superpixel
-        # Apply mask, then 2D mode for majority class
-        target_s[superpixel] = target[segment_mask].mode()[0].mode()[0]
+        # Apply mask, the mode for majority class
+        target_s[superpixel] = target[segment_mask].view(-1).mode()[0]
     return mask, target_s
 
 
@@ -143,8 +143,8 @@ def mask_accuracy(target, mask):
     for superpixel in range(superpixels):
         # Define mask for cluster idx
         segment_mask = mask == superpixel
-        # Take slices to select image, apply mask, 2D mode for majority class
-        target_s[segment_mask] = target[segment_mask].mode()[0].mode()[0]
+        # Take slices to select image, apply mask, mode for majority class
+        target_s[segment_mask] = target[segment_mask].view(-1).mode()[0]
     accuracy = torch.mean((target == target_s).float())
     return accuracy
 
