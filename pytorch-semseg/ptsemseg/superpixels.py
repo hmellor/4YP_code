@@ -97,13 +97,13 @@ def create_mask(image, target, numSegments, limOverseg):
             # If current superpixel is on a gt boundary
             if on_boundary:
                 # Find how many of each class is in superpixel
-                class_count = torch.bincount(target[segment_mask])
+                class_hist = torch.bincount(target[segment_mask])
                 # Remove zero elements
-                class_count = class_count[class_count.nonzero()].float()
+                class_hist = class_hist[class_hist.nonzero()].float()
                 # Find minority class in superpixel
-                minority_class = min(class_count)
+                min_class = min(class_hist)
                 # Is the minority class large enough for oversegmentation
-                above_threshold = minority_class > class_count.sum() * limOverseg
+                above_threshold = min_class > class_hist.sum() * limOverseg
                 if above_threshold:
                     # Leaving one class in supperpixel be
                     for c in classes[1:]:

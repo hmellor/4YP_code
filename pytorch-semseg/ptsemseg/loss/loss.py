@@ -153,7 +153,7 @@ def multi_scale_cross_entropy2d(
     input, target, weight=None, size_average=True, scale_weight=None
 ):
     # Auxiliary training for PSPNet [1.0, 0.4] and ICNet [1.0, 0.4, 0.16]
-    if scale_weight == None:  # scale_weight: torch tensor type
+    if scale_weight is None:  # scale_weight: torch tensor type
         n_inp = len(input)
         scale = 0.4
         scale_weight = torch.pow(
