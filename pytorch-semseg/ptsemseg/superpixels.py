@@ -6,7 +6,9 @@ from skimage.util import img_as_float
 from skimage.segmentation import slic
 
 
-# For use during runtime
+'''For use during runtime'''
+
+
 def convert_to_superpixels(input, target, mask):
     # Extract size data from input and target
     images, c, h, w = input.size()
@@ -42,7 +44,9 @@ def to_super_to_pixels(input, mask):
     input_s, _, _ = convert_to_superpixels(input, target, mask)
     output = convert_to_pixels(input_s, input, mask)
     return output
-# For pre-processing
+
+
+'''For pre-processing'''
 
 
 def create_masks(numSegments=100, limOverseg=None):
@@ -134,7 +138,8 @@ def get_image_list(split=None):
     image_list = [id_.rstrip() for id_ in image_list]
     return image_list, root
 
-# For superpixel validation
+
+'''For superpixel validation'''
 
 
 def mask_accuracy(target, mask):
