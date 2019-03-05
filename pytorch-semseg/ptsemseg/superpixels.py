@@ -222,3 +222,27 @@ def find_size_variance():
         dataset_variance += std / mean
     dataset_variance /= len(image_list)
     return dataset_variance
+
+
+if __name__ == "__main__":
+    import argparse
+
+    # Initiates arguments
+    parser = argparse.ArgumentParser(
+        description='Module for processing PyTorch tensors as superpixels',
+        epilog=None
+    )
+    parser.add_argument(
+        '-g',
+        '--generate_masks',
+        nargs=1,
+        type=int,
+        default=None
+        help='Generates segment masks with [generate_masks] segments'
+    )
+    args = parser.parse_args()
+
+    if args.generate_masks is not None:
+        generate_masks(args.generate_masks)
+    elif args.generate_masks is None:
+        print('You must provide the number segments wanted for each mask')
