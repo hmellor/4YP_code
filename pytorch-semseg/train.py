@@ -24,6 +24,7 @@ from ptsemseg.optimizers import get_optimizer
 from ptsemseg.superpixels import convert_to_superpixels
 from ptsemseg.superpixels import convert_to_pixels
 
+import scipy.misc as misc
 from tensorboardX import SummaryWriter
 
 
@@ -38,7 +39,7 @@ def flatten(d, parent_key='', sep='_'):
     return dict(items)
 
 
-def train(cfg, writer, logger_old, name):
+def train(cfg, writer, logger_old, args):
 
     # Setup seeds
     torch.manual_seed(cfg.get('seed', 1337))
@@ -138,7 +139,7 @@ def train(cfg, writer, logger_old, name):
 
     # Prepare logging
     xp_name = cfg['model']['arch'] + '_' + \
-        cfg['training']['loss']['name'] + '_' + name
+        cfg['training']['loss']['name'] + '_' + args.name
     xp = logger.Experiment(xp_name,
                            use_visdom=True, visdom_opts={'server': 'http://localhost',
                                                          'port': 8098}, time_indexing=False, xlabel='Epoch')
@@ -197,6 +198,12 @@ def train(cfg, writer, logger_old, name):
             gt = labels.data.cpu().numpy()
             running_metrics_train.update(gt, pred)
             train_loss_meter.update(loss.item())
+
+            if args.evaluate:
+                decoded = t_loader.decode_segmap(np.squeeze(pred, axis=0))
+                misc.imsave("./{}.png".format(i), decoded)
+                image_save = np.transpose(np.squeeze(images.data.cpu().numpy(), axis=0), (1,2,0))
+                misc.imsave("./{}.jpg".format(i), image_save)
 
             # accumulate gradients based on the accumulation batch size
             if i % it_per_step == 1 or it_per_step == 1:
@@ -312,7 +319,7 @@ def train(cfg, writer, logger_old, name):
                     'runs',
                     "{}_{}".format(cfg['model']['arch'],
                                    cfg['training']['loss']['name']),
-                    name,
+                    args.name,
                     'plots.json'
                 )
                 xp.to_json(visdir)
@@ -359,17 +366,25 @@ if __name__ == "__main__":
     run_id = random.randint(1, 100000)
     parser = argparse.ArgumentParser(description="config")
     parser.add_argument(
+        "-c",
         "--config",
         nargs="?",
         type=str,
-        help="Configuration file to use"
+        help="path of configuration file to use"
     )
     parser.add_argument(
+        "-n",
         "--name",
         nargs="?",
         type=str,
         default=str(run_id),
-        help="Name of the experiment"
+        help="name to give the experiment output directory"
+    )
+    parser.add_argument(
+        '-e',
+        '--evaluate',
+        action='store_true',
+        help='causes prediction/image pairs to be saved for later evaluation'
     )
 
     args = parser.parse_args()
@@ -390,4 +405,4 @@ if __name__ == "__main__":
     logger_old = get_logger(logdir)
     logger_old.info('Let the games begin')
 
-    train(cfg, writer, logger_old, args.name)
+    train(cfg, writer, logger_old, args)
