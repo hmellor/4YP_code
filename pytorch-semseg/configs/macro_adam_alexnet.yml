@@ -8,17 +8,17 @@ data:
     img_cols: 'same'
     path: ../datasets/VOCdevkit/VOC2011
 training:
-    epochs: 500
+    epochs: 100
     batch_size: 1
     acc_batch_size: 20
-    n_workers: 4
+    n_workers: 1
     print_interval: 5 # in iterations
     optimizer:
-        name: 'sgd'
-        lr: 1.0e-3
-        weight_decay: 5.0e-4 # or 0.0625
-        momentum: 0.9
+        name: 'adam'
+        lr: 'define when calling train.py'
+        weight_decay: 'define when calling train.py'
     loss:
-        name: 'micro_average'
+        name: 'macro_average'
+        superpixels:
     lr_schedule:
     resume: #runs/config/80202/fcn8s_pascal.pkl
