@@ -4,6 +4,7 @@ from os.path import exists
 from os.path import dirname
 from os.path import abspath
 from os import mkdir
+from os import listdir
 from tqdm import tqdm
 from skimage import io
 from skimage.util import img_as_float
@@ -49,6 +50,28 @@ def to_super_to_pixels(input, mask):
     input_s, _, _ = convert_to_superpixels(input, target, mask)
     output = convert_to_pixels(input_s, input, mask)
     return output
+
+
+def setup_superpixels(superpixels):
+    root = "../../datasets/VOCdevkit/VOC2011"
+    image_save_dir = join(
+        pkg_dir,
+        root,
+        "SegmentationClass/{}_sp".format(superpixels)
+    )
+    target_s_save_dir = join(
+        pkg_dir,
+        root,
+        "SegmentationClass/pre_encoded_{}_sp".format(superpixels)
+    )
+    dirs = [image_save_dir, target_s_save_dir]
+    dataset_len = len(get_image_list()[0])
+    if not any(exists(x) and len(listdir(x)) == dataset_len for x in dirs):
+            print("Superpixel dataset of scale {} superpixels either doesn't exist or is incomplete".format(superpixels))
+            print("Generating superpixel dataset now...")
+            create_masks(superpixels)
+
+    fix_broken_images(superpixels)
 
 
 '''For pre-processing'''
