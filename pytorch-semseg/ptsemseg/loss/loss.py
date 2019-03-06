@@ -30,34 +30,84 @@ def cross_entropy2d(input, target, weight=None, size_average=True):
     return loss
 
 
-def zehan_iou(input, target, size):
+def zehan_iou(input, target, size=None):
+    if size is not None:
+        pass
+    else:
+        n, c, h, w = input.size()
+        nt, ht, wt = target.size()
+
+        # Handle inconsistent size between input and target
+        if h > ht and w > wt:  # upsample labels
+            print('resizing, prediction too large')
+            target = target.unsequeeze(1)
+            target = F.upsample(target, size=(h, w), mode="nearest")
+            target = target.sequeeze(1)
+        elif h < ht and w < wt:  # upsample images
+            print('resizing, prediction too small')
+            input = F.upsample(input, size=(ht, wt), mode="bilinear")
+        elif h != ht and w != wt:
+            raise Exception("Only support upsampling")
+
+        # Reshape to nxc and nx1 respectively
+        input = input.transpose(1, 2).transpose(2, 3).contiguous().view(-1, c)
+        target = target.view(-1)
     n_pixels, c = input.size()
     all_classes = torch.arange(0, c, device=input.device)
     gt_classes = target.unique(sorted=True)
     loss = torch.full((gt_classes.numel(),),
                       - float('inf'), device=input.device)
     for i, gt_class in enumerate(gt_classes):
-        theta = input[:, gt_class] - input[:,
-                                           all_classes[all_classes.ne(gt_class)]].logsumexp(1)
+        theta = input[:, gt_class].clone()
+        theta -= input[:, all_classes[all_classes.ne(gt_class)]].logsumexp(1)
         mask_gt = target.eq(gt_class)
         mask_not_gt = target.ne(gt_class)
 
         n_gt = mask_gt.long().sum()
         # Zehan's algorithm
-        # Sort all scores that are supposed to be background and sum them cumulatively
+        # Sort all scores that are supposed to be background and sum them
+        # cumulatively.
         theta_tilde = theta[mask_not_gt].sort(descending=True)[0]
         theta_hat = theta_tilde.cumsum(0)
-        # Evaluate loss for all possible values of U from the min U to all the super-pixels
-        U = torch.arange(n_gt, n_pixels + 1, device=input.device)
+        # Evaluate loss for all possible values of U from the min U to all the
+        # super-pixels.
+        # Initialise lower/upper bounds and sample size.
+        lb = n_gt
+        ub = n_pixels
+        ss = 300
+        # While sample width is greater than sample size
+        while ub - lb > ss:
+            # Sparsely sample U
+            U = torch.linspace(lb, ub, steps=ss, device=input.device).long()
+            # Calculate sigma as normal
+            indices = theta[mask_gt].repeat(U.numel(), 1).t() >= 1. / U.float()
+            sigma = (indices.float().t() * theta[mask_gt]).sum(1)
+            I = indices.sum(0)
+            sigma -= I.float() / U.float()
+            sigma[1:] += theta_hat[U[1:] - n_gt - 1]
+            # Find location of current sample maximum
+            sample_max = torch.argmax(sigma)
+            # Update sample width to be 1 point above and below sample max
+            if sample_max == 0:
+                lb = U[sample_max]
+                ub = U[sample_max + 1]
+            elif sample_max == ss-1:
+                lb = U[sample_max - 1]
+                ub = U[sample_max]
+            else:
+                lb = U[sample_max - 1]
+                ub = U[sample_max + 1]
+        # Calculate sigma as normal using reduced, dense U that contains
+        # global max.
+        U = torch.arange(lb, ub + 1, device=input.device)
         indices = theta[mask_gt].repeat(U.numel(), 1).t() >= 1. / U.float()
         sigma = (indices.float().t() * theta[mask_gt]).sum(1)
         I = indices.sum(0)
-        # print(U.size(), indices.size(), sigma.size(), I.size())
         sigma -= I.float() / U.float()
         sigma[1:] += theta_hat[U[1:] - n_gt - 1]
         loss[i] = sigma.max()
         loss[i] += 1 - theta[mask_gt].sum()
-    return loss.mean()
+    return loss.mean() / n_pixels
 
 
 def macro_average(input, target, size=None):
