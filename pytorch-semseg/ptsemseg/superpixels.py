@@ -1,11 +1,16 @@
 import torch
 from os.path import join
+from os.path import exists
+from os.path import dirname
+from os.path import abspath
+from os import mkdir
 from tqdm import tqdm
 from skimage import io
 from skimage.util import img_as_float
 from skimage.segmentation import slic
 
-
+# Define absolute path for accessing dataset files
+pkg_dir = dirname(abspath(__file__))
 '''For use during runtime'''
 
 
@@ -56,8 +61,8 @@ def create_masks(numSegments=100, limOverseg=None):
         # Load image/target pair
         image_name = image_number + ".jpg"
         target_name = image_number + ".png"
-        image_path = join(root, "JPEGImages", image_name)
-        target_path = join(root, "SegmentationClass/pre_encoded", target_name)
+        image_path = join(pkg_dir, root, "JPEGImages", image_name)
+        target_path = join(pkg_dir, root, "SegmentationClass/pre_encoded", target_name)
         image = img_as_float(io.imread(image_path))
         target = io.imread(target_path)
         target = torch.from_numpy(target)
@@ -70,11 +75,23 @@ def create_masks(numSegments=100, limOverseg=None):
         )
 
         # Save for later
+        image_save_dir = join(
+            pkg_dir,
+            root,
+            "SegmentationClass/{}_sp".format(numSegments)
+        )
+        target_s_save_dir = join(
+            pkg_dir,
+            root,
+            "SegmentationClass/pre_encoded_{}_sp".format(numSegments)
+        )
+        if not exists(image_save_dir):
+            mkdir(image_save_dir)
+        if not exists(target_s_save_dir):
+            mkdir(target_s_save_dir)
         save_name = image_number + ".pt"
-        image_save_path = join(
-            root, "SegmentationClass/SuperPixels", save_name)
-        target_s_save_path = join(
-            root, "SegmentationClass/pre_encoded_superpixels", save_name)
+        image_save_path = join(pkg_dir, image_save_dir, save_name)
+        target_s_save_path = join(pkg_dir, target_s_save_dir, save_name)
         torch.save(mask, image_save_path)
         torch.save(target_s, target_s_save_path)
 
@@ -129,9 +146,9 @@ def create_mask(image, target, numSegments, limOverseg):
 def get_image_list(split=None):
     root = "../../datasets/VOCdevkit/VOC2011"
     if split is None:
-        image_list_path = join(root, "ImageSets/Segmentation/trainval.txt")
+        image_list_path = join(pkg_dir, root, "ImageSets/Segmentation/trainval.txt")
     else:
-        image_list_path = join(root, "ImageSets/Segmentation/", split + ".txt")
+        image_list_path = join(pkg_dir, root, "ImageSets/Segmentation/", split + ".txt")
     image_list = tuple(open(image_list_path, "r"))
     image_list = [id_.rstrip() for id_ in image_list]
     return image_list, root
@@ -159,8 +176,8 @@ def dataset_accuracy():
     mask_dir = "SegmentationClass/SuperPixels"
     target_dir = "SegmentationClass/pre_encoded"
     for image_number in tqdm(image_list):
-        mask_path = join(root, mask_dir, image_number + ".pt")
-        target_path = join(root, target_dir, image_number + ".png")
+        mask_path = join(pkg_dir, root, mask_dir, image_number + ".pt")
+        target_path = join(pkg_dir, root, target_dir, image_number + ".png")
         mask = torch.load(mask_path)
         target = io.imread(target_path)
         target = torch.from_numpy(target)
@@ -175,7 +192,7 @@ def find_smallest_object():
     smallest_object = 1e6
     for image_number in tqdm(image_list):
         target_name = image_number + ".png"
-        target_path = join(root, "SegmentationClass/pre_encoded", target_name)
+        target_path = join(pkg_dir, root, "SegmentationClass/pre_encoded", target_name)
         target = io.imread(target_path)
         target = torch.from_numpy(target)
         object_size = torch.ne(target, 0).sum()
@@ -219,7 +236,7 @@ def find_size_variance():
     mask_dir = "SegmentationClass/SuperPixels"
     dataset_variance = 0
     for image_number in tqdm(image_list):
-        mask_path = join(root, mask_dir, image_number + ".pt")
+        mask_path = join(pkg_dir, root, mask_dir, image_number + ".pt")
         mask = torch.load(mask_path)
         # Initialise number of superpixels tensors
         Q = mask.unique().numel()
@@ -253,20 +270,20 @@ if __name__ == "__main__":
         help='Creates segment masks with N segments'
     )
     parser.add_argument(
-        '-b',
-        '--find_broken',
-        nargs='?',
-        type=str,
-        metavar='split',
-        const='trainval',
-        help='Finds superpixel images that will cause training to fail'
+        '-f',
+        '--fix_broken',
+        nargs=1,
+        type=int,
+        metavar='M',
+        help="Fix the M superpixel split so it doen't cause training to fail"
     )
     args = parser.parse_args()
 
     if args.create_masks:
-        print('Creating masks with {} segments each'.format(args.create_masks[0]))
+        print('Creating masks with {} segments each'.format(
+            args.create_masks[0]))
         create_masks(args.create_masks[0])
 
-    if args.find_broken:
-        print('Finding superpixel images from {} split that will cause zero grad errors'.format(args.find_broken))
-        find_broken_images(args.find_broken)
+    if args.fix_broken:
+        print('Creating train and val splits so that training does not fail')
+        fix_broken_images(args.fix_broken[0])
