@@ -77,8 +77,6 @@ def create_masks(numSegments=100, limOverseg=None):
             root, "SegmentationClass/pre_encoded_superpixels", save_name)
         torch.save(mask, image_save_path)
         torch.save(target_s, target_s_save_path)
-    print(dataset_accuracy())
-    print(find_size_variance())
 
 
 def create_mask(image, target, numSegments, limOverseg):
@@ -237,10 +235,24 @@ if __name__ == "__main__":
         '--create_masks',
         nargs=1,
         type=int,
-        default=None,
-        help='Creates segment masks with [generate_masks] segments'
+        metavar='N',
+        help='Creates segment masks with N segments'
+    )
+    parser.add_argument(
+        '-b',
+        '--find_broken',
+        nargs='?',
+        type=str,
+        metavar='split',
+        const='trainval',
+        help='Finds superpixel images that will cause training to fail'
     )
     args = parser.parse_args()
 
-    if args.create_masks is not None:
-        create_masks(args.create_masks)
+    if args.create_masks:
+        print('Creating masks with {} segments each'.format(args.create_masks[0]))
+        create_masks(args.create_masks[0])
+
+    if args.find_broken:
+        print('Finding superpixel images from {} split that will cause zero grad errors'.format(args.find_broken))
+        find_broken_images(args.find_broken)
