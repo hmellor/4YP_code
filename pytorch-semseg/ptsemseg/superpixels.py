@@ -4,6 +4,7 @@ from os.path import exists
 from os.path import dirname
 from os.path import abspath
 from os import mkdir
+from os import remove
 from os import listdir
 from tqdm import tqdm
 from skimage import io
