@@ -185,19 +185,23 @@ def find_smallest_object():
     return smallest_object
 
 
-def find_broken_images(split=None):
+def find_usable_images(split, superpixels):
     # Generate image list
     image_list, root = get_image_list(split)
-    broken_images = 0
-    for image_number in tqdm(image_list):
+    usable = []
+    target_dir = join(
+        pkg_dir,
+        root,
+        "SegmentationClass/pre_encoded_{}_sp".format(superpixels)
+    )
+    for image_number in image_list:
         target_name = image_number + ".pt"
-        target_path = join(
-            root, "SegmentationClass/pre_encoded_superpixels", target_name)
+        target_path = join(pkg_dir, target_dir, target_name)
         target = torch.load(target_path)
-        if target.nonzero().numel() < 1:
-            broken_images += 1
-            print(target.nonzero(), target_name)
-    return broken_images
+        if target.nonzero().numel() > 0:
+            usable.append(image_number)
+    return usable, root
+
 
 
 def find_size_variance():
