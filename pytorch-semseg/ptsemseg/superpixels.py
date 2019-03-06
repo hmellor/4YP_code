@@ -203,6 +203,16 @@ def find_usable_images(split, superpixels):
     return usable, root
 
 
+def fix_broken_images(superpixels):
+    for split in ["train", "val"]:
+        usable, root = find_usable_images(split=split, superpixels=superpixels)
+        super_path = join(pkg_dir, root, "ImageSets/Segmentation", split + "_super.txt")
+        if exists(super_path):
+            remove(super_path)
+        with open(super_path, "w+") as file:
+            for image_number in usable:
+                file.write(image_number + "\n")
+
 
 def find_size_variance():
     image_list, root = get_image_list()
