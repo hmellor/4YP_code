@@ -57,9 +57,18 @@ def train(cfg, writer, logger_old, args):
     # Setup Dataloader
     data_loader = get_loader(cfg['data']['dataset'])
     data_path = cfg['data']['path']
-    if cfg['training']['loss']['superpixels'] is not None:
+
+    if isinstance(cfg['training']['loss']['superpixels'], int):
         use_superpixels = True
+        cfg['data']['train_split'] = 'train_super'
+        cfg['data']['val_split'] = 'val_super'
         setup_superpixels(cfg['training']['loss']['superpixels'])
+    elif cfg['training']['loss']['superpixels'] is not None:
+        raise Exception(
+            "cfg['training']['loss']['superpixels'] is of the wrong type"
+        )
+    else:
+        use_superpixels = False
 
     t_loader = data_loader(
         data_path,
@@ -376,6 +385,30 @@ if __name__ == "__main__":
         help="path of configuration file to use"
     )
     parser.add_argument(
+        "-lr",
+        "--learning_rate",
+        nargs=1,
+        type=float,
+        metavar='LR',
+        help="learning rate to use"
+    )
+    parser.add_argument(
+        "-wd",
+        "--weight_decay",
+        nargs=1,
+        type=float,
+        metavar='WD',
+        help="weight decay to use"
+    )
+    parser.add_argument(
+        "-sp",
+        "--superpixels",
+        nargs=1,
+        type=int,
+        metavar='SP',
+        help="how many superpixels to use"
+    )
+    parser.add_argument(
         "-n",
         "--name",
         nargs="?",
@@ -401,6 +434,12 @@ if __name__ == "__main__":
         args.name
     )
     writer = SummaryWriter(log_dir=logdir)
+    if cfg['training']['optimizer']['lr'] and args.learning_rate:
+        cfg['training']['optimizer']['lr'] = args.learning_rate[0]
+    if cfg['training']['optimizer']['weight_decay'] and args.weight_decay:
+        cfg['training']['optimizer']['weight_decay'] = args.weight_decay[0]
+    if cfg['training']['loss']['superpixels'] and args.superpixels:
+        cfg['training']['loss']['superpixels'] = args.superpixels[0]
 
     print('RUNDIR: {}'.format(logdir))
     shutil.copy(args.config, logdir)
