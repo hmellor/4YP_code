@@ -2,8 +2,8 @@ model:
     arch: fcalexnet
 data:
     dataset: pascal
-    train_split: train
-    val_split: val
+    train_split: train_super
+    val_split: val_super
     img_rows: 'same'
     img_cols: 'same'
     path: ../datasets/VOCdevkit/VOC2011
@@ -19,6 +19,6 @@ training:
         weight_decay: 1.0e-5
     loss:
         name: 'zehan_iou'
-        superpixels: False
+        superpixels: 500
     lr_schedule:
     resume: #runs/config/80202/fcn8s_pascal.pkl

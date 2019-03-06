@@ -23,6 +23,7 @@ from ptsemseg.schedulers import get_scheduler
 from ptsemseg.optimizers import get_optimizer
 from ptsemseg.superpixels import convert_to_superpixels
 from ptsemseg.superpixels import convert_to_pixels
+from ptsemseg.superpixels import setup_superpixels
 
 import scipy.misc as misc
 from tensorboardX import SummaryWriter
@@ -56,6 +57,9 @@ def train(cfg, writer, logger_old, args):
     # Setup Dataloader
     data_loader = get_loader(cfg['data']['dataset'])
     data_path = cfg['data']['path']
+    if cfg['training']['loss']['superpixels'] is not None:
+        use_superpixels = True
+        setup_superpixels(cfg['training']['loss']['superpixels'])
 
     t_loader = data_loader(
         data_path,
@@ -131,7 +135,6 @@ def train(cfg, writer, logger_old, args):
     time_meter = averageMeter()
 
     train_len = t_loader.train_len
-    use_superpixels = cfg['training']['loss']['superpixels']
     best_iou = -100.0
     i = start_iter
     j = 0

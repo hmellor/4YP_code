@@ -58,7 +58,7 @@ class pascalVOCLoader(data.Dataset):
         self,
         root,
         split="train_aug",
-        superpixels=False,
+        superpixels=None,
         is_transform=False,
         img_size=512,
         augmentations=None,
@@ -77,14 +77,11 @@ class pascalVOCLoader(data.Dataset):
         self.img_size = (
             img_size if isinstance(img_size, tuple) else (img_size, img_size)
         )
-        splits = ["train", "val", "trainval", "train_binary",
-                  "val_binary", "train_super", "val_super"]
+        splits = ["train", "val", "trainval", "train_super", "val_super"]
         for split in splits:
             path = pjoin(self.root, "ImageSets/Segmentation", split + ".txt")
             file_list = tuple(open(path, "r"))
-            if self.split == "train_binary" and self.superpixels:
-                self.train_len = len(file_list)
-            elif self.split == "train_super" and self.superpixels:
+            if self.split == "train_super" and self.superpixels:
                 self.train_len = len(file_list)
             elif split == 'train':
                 self.train_len = len(file_list)
@@ -111,9 +108,9 @@ class pascalVOCLoader(data.Dataset):
             im, lbl = self.transform(im, lbl)
         if self.superpixels:
             mask_path = pjoin(
-                self.root, "SegmentationClass/SuperPixels", im_name + ".pt")
+                self.root, "SegmentationClass/{}_sp".format(self.superpixels), im_name + ".pt")
             target_path = pjoin(
-                self.root, "SegmentationClass/pre_encoded_superpixels", im_name + ".pt")
+                self.root, "SegmentationClass/pre_encoded_{}_sp".format(self.superpixels), im_name + ".pt")
             mask = torch.load(mask_path)
             lbl_s = torch.load(target_path)
             return im, lbl, lbl_s, mask
