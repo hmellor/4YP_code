@@ -10,7 +10,7 @@ from ptsemseg.utils import recursive_glob
 from ptsemseg.augmentations import *
 
 class mapillaryVistasLoader(data.Dataset):
-    def __init__(self, root, split="training", img_size=(640, 1280), 
+    def __init__(self, root, split="training", img_size=(640, 1280),
                  is_transform=True, augmentations=None):
         self.root = root
         self.split = split
@@ -37,7 +37,7 @@ class mapillaryVistasLoader(data.Dataset):
         print("Found %d %s images" % (len(self.files[split]), split))
 
     def parse_config(self):
-        with open(os.path.join(self.root, 'config.json')) as config_file:
+        with open(os.path.join(self.root, 'dataset_config.json')) as config_file:
             config = json.load(config_file)
 
         labels = config['labels']
@@ -78,8 +78,8 @@ class mapillaryVistasLoader(data.Dataset):
     def transform(self, img, lbl):
         if self.img_size == ('same', 'same'):
             pass
-        else: 
-            img = img.resize((self.img_size[0], self.img_size[1]), 
+        else:
+            img = img.resize((self.img_size[0], self.img_size[1]),
                               resample=Image.LANCZOS)  # uint8 with RGB mode
             lbl = lbl.resize((self.img_size[0], self.img_size[1]))
         img = np.array(img).astype(np.float64) / 255.0
@@ -87,7 +87,7 @@ class mapillaryVistasLoader(data.Dataset):
         lbl = torch.from_numpy(np.array(lbl)).long()
         lbl[lbl == 65] = self.ignore_id
         return img, lbl
- 
+
 
     def decode_segmap(self, temp):
         r = temp.copy()
@@ -105,7 +105,7 @@ class mapillaryVistasLoader(data.Dataset):
         return rgb
 
 if __name__ == '__main__':
-    augment = Compose([RandomHorizontallyFlip(), 
+    augment = Compose([RandomHorizontallyFlip(),
                        RandomRotate(6)])
 
     local_path = '/private/home/meetshah/datasets/seg/vistas/'

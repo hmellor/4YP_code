@@ -23,7 +23,7 @@ def get_data_path(name):
     Returns:
         (str): The path to the root directory containing the dataset.
     """
-    js = open("config.json").read()
+    js = open("dataset_config.json").read()
     data = json.loads(js)
     return os.path.expanduser(data[name]["data_path"])
 

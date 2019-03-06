@@ -8,7 +8,7 @@
 
 ## Semantic Segmentation Algorithms Implemented in PyTorch
 
-This repository aims at mirroring popular semantic segmentation architectures in PyTorch. 
+This repository aims at mirroring popular semantic segmentation architectures in PyTorch.
 
 
 <p align="center">
@@ -28,7 +28,7 @@ This repository aims at mirroring popular semantic segmentation architectures in
 * [Segnet](https://arxiv.org/abs/1511.00561) - With Unpooling using Maxpool indices
 
 
-#### Upcoming 
+#### Upcoming
 
 * [E-Net](https://arxiv.org/abs/1606.02147)
 * [RefineNet](https://arxiv.org/abs/1611.06612)
@@ -53,13 +53,13 @@ This repository aims at mirroring popular semantic segmentation architectures in
 * tqdm
 
 #### One-line installation
-    
+
 `pip install -r requirements.txt`
 
 ### Data
 
 * Download data for desired dataset(s) from list of URLs [here](https://meetshah1995.github.io/semantic-segmentation/deep-learning/pytorch/visdom/2017/06/01/semantic-segmentation-over-the-years.html#sec_datasets).
-* Extract the zip / tar and modify the path appropriately in `config.json`
+* Extract the zip / tar and modify the path appropriately in `dataset_config.json`
 
 
 ### Usage
@@ -73,7 +73,7 @@ python -m visdom.server
 **To train the model :**
 
 ```
-python train.py [-h] [--config [CONFIG]] 
+python train.py [-h] [--config [CONFIG]]
 
 --config                Configuration file to use
 ```
@@ -96,7 +96,7 @@ usage: validate.py [-h] [--config [CONFIG]] [--model_path [MODEL_PATH]]
 ```
 python test.py [-h] [--model_path [MODEL_PATH]] [--dataset [DATASET]]
                [--dcrf [DCRF]] [--img_path [IMG_PATH]] [--out_path [OUT_PATH]]
- 
+
   --model_path          Path to the saved model
   --dataset             Dataset to use ['pascal, camvid, ade20k etc']
   --dcrf                Enable DenseCRF based post-processing
@@ -115,4 +115,3 @@ python test.py [-h] [--model_path [MODEL_PATH]] [--dataset [DATASET]]
     Year = {2017}
 }
 ```
-

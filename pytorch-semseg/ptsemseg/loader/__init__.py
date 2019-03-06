@@ -29,7 +29,7 @@ def get_loader(name):
     }[name]
 
 
-def get_data_path(name, config_file="config.json"):
+def get_data_path(name, config_file="dataset_config.json"):
     """get_data_path
 
     :param name:
