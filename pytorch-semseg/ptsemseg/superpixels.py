@@ -12,7 +12,9 @@ from skimage.util import img_as_float
 from skimage.segmentation import slic
 
 # Define absolute path for accessing dataset files
-pkg_dir = dirname(abspath(__file__))
+package_dir = dirname(abspath(__file__))
+dataset_dir = "../../datasets/VOCdevkit/VOC2011"
+root = join(package_dir, dataset_dir)
 '''For use during runtime'''
 
 
@@ -54,19 +56,16 @@ def to_super_to_pixels(input, mask):
 
 
 def setup_superpixels(superpixels):
-    root = "../../datasets/VOCdevkit/VOC2011"
     image_save_dir = join(
-        pkg_dir,
         root,
         "SegmentationClass/{}_sp".format(superpixels)
     )
     target_s_save_dir = join(
-        pkg_dir,
         root,
         "SegmentationClass/pre_encoded_{}_sp".format(superpixels)
     )
     dirs = [image_save_dir, target_s_save_dir]
-    dataset_len = len(get_image_list()[0])
+    dataset_len = len(get_image_list())
     if not any(exists(x) and len(listdir(x)) == dataset_len for x in dirs):
             print("Superpixel dataset of scale {} superpixels either doesn't exist or is incomplete".format(superpixels))
             print("Generating superpixel dataset now...")
@@ -80,13 +79,13 @@ def setup_superpixels(superpixels):
 
 def create_masks(numSegments=100, limOverseg=None):
     # Generate image list
-    image_list, root = get_image_list()
+    image_list = get_image_list()
     for image_number in tqdm(image_list):
         # Load image/target pair
         image_name = image_number + ".jpg"
         target_name = image_number + ".png"
-        image_path = join(pkg_dir, root, "JPEGImages", image_name)
-        target_path = join(pkg_dir, root, "SegmentationClass/pre_encoded", target_name)
+        image_path = join(root, "JPEGImages", image_name)
+        target_path = join(root, "SegmentationClass/pre_encoded", target_name)
         image = img_as_float(io.imread(image_path))
         target = io.imread(target_path)
         target = torch.from_numpy(target)
@@ -100,12 +99,10 @@ def create_masks(numSegments=100, limOverseg=None):
 
         # Save for later
         image_save_dir = join(
-            pkg_dir,
             root,
             "SegmentationClass/{}_sp".format(numSegments)
         )
         target_s_save_dir = join(
-            pkg_dir,
             root,
             "SegmentationClass/pre_encoded_{}_sp".format(numSegments)
         )
@@ -114,8 +111,8 @@ def create_masks(numSegments=100, limOverseg=None):
         if not exists(target_s_save_dir):
             mkdir(target_s_save_dir)
         save_name = image_number + ".pt"
-        image_save_path = join(pkg_dir, image_save_dir, save_name)
-        target_s_save_path = join(pkg_dir, target_s_save_dir, save_name)
+        image_save_path = join(image_save_dir, save_name)
+        target_s_save_path = join(target_s_save_dir, save_name)
         torch.save(mask, image_save_path)
         torch.save(target_s, target_s_save_path)
 
@@ -168,14 +165,13 @@ def create_mask(image, target, numSegments, limOverseg):
 
 
 def get_image_list(split=None):
-    root = "../../datasets/VOCdevkit/VOC2011"
     if split is None:
-        image_list_path = join(pkg_dir, root, "ImageSets/Segmentation/trainval.txt")
+        image_list_path = join(root, "ImageSets/Segmentation/trainval.txt")
     else:
-        image_list_path = join(pkg_dir, root, "ImageSets/Segmentation/", split + ".txt")
+        image_list_path = join(root, "ImageSets/Segmentation/", split + ".txt")
     image_list = tuple(open(image_list_path, "r"))
     image_list = [id_.rstrip() for id_ in image_list]
-    return image_list, root
+    return image_list
 
 
 '''For superpixel validation'''
@@ -195,13 +191,13 @@ def mask_accuracy(target, mask):
 
 def dataset_accuracy(superpixels):
     # Generate image list
-    image_list, root = get_image_list()
+    image_list = get_image_list()
     mask_acc = 0
     mask_dir = "SegmentationClass/SegmentationClass/{}_sp".format(superpixels)
     target_dir = "SegmentationClass/pre_encoded_{}_sp".format(superpixels)
     for image_number in tqdm(image_list):
-        mask_path = join(pkg_dir, root, mask_dir, image_number + ".pt")
-        target_path = join(pkg_dir, root, target_dir, image_number + ".png")
+        mask_path = join(root, mask_dir, image_number + ".pt")
+        target_path = join(root, target_dir, image_number + ".png")
         mask = torch.load(mask_path)
         target = io.imread(target_path)
         target = torch.from_numpy(target)
@@ -212,11 +208,11 @@ def dataset_accuracy(superpixels):
 
 def find_smallest_object():
     # Generate image list
-    image_list, root = get_image_list()
+    image_list = get_image_list()
     smallest_object = 1e6
     for image_number in tqdm(image_list):
         target_name = image_number + ".png"
-        target_path = join(pkg_dir, root, "SegmentationClass/pre_encoded", target_name)
+        target_path = join(root, "SegmentationClass/pre_encoded", target_name)
         target = io.imread(target_path)
         target = torch.from_numpy(target)
         object_size = torch.ne(target, 0).sum()
@@ -228,26 +224,25 @@ def find_smallest_object():
 
 def find_usable_images(split, superpixels):
     # Generate image list
-    image_list, root = get_image_list(split)
+    image_list = get_image_list(split)
     usable = []
     target_dir = join(
-        pkg_dir,
         root,
         "SegmentationClass/pre_encoded_{}_sp".format(superpixels)
     )
     for image_number in image_list:
         target_name = image_number + ".pt"
-        target_path = join(pkg_dir, target_dir, target_name)
+        target_path = join(target_dir, target_name)
         target = torch.load(target_path)
         if target.nonzero().numel() > 0:
             usable.append(image_number)
-    return usable, root
+    return usable
 
 
 def fix_broken_images(superpixels):
     for split in ["train", "val"]:
-        usable, root = find_usable_images(split=split, superpixels=superpixels)
-        super_path = join(pkg_dir, root, "ImageSets/Segmentation", split + "_super.txt")
+        usable = find_usable_images(split=split, superpixels=superpixels)
+        super_path = join(root, "ImageSets/Segmentation", split + "_super.txt")
         if exists(super_path):
             remove(super_path)
         with open(super_path, "w+") as file:
@@ -256,11 +251,11 @@ def fix_broken_images(superpixels):
 
 
 def find_size_variance(superpixels):
-    image_list, root = get_image_list()
+    image_list = get_image_list()
     mask_dir = "SegmentationClass/{}_sp".format(superpixels)
     dataset_variance = 0
     for image_number in tqdm(image_list):
-        mask_path = join(pkg_dir, root, mask_dir, image_number + ".pt")
+        mask_path = join(root, mask_dir, image_number + ".pt")
         mask = torch.load(mask_path)
         # Initialise number of superpixels tensors
         Q = mask.unique().numel()
