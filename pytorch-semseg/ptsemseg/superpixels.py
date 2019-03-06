@@ -193,12 +193,12 @@ def mask_accuracy(target, mask):
     return accuracy
 
 
-def dataset_accuracy():
+def dataset_accuracy(superpixels):
     # Generate image list
     image_list, root = get_image_list()
     mask_acc = 0
-    mask_dir = "SegmentationClass/SuperPixels"
-    target_dir = "SegmentationClass/pre_encoded"
+    mask_dir = "SegmentationClass/SegmentationClass/{}_sp".format(superpixels)
+    target_dir = "SegmentationClass/pre_encoded_{}_sp".format(superpixels)
     for image_number in tqdm(image_list):
         mask_path = join(pkg_dir, root, mask_dir, image_number + ".pt")
         target_path = join(pkg_dir, root, target_dir, image_number + ".png")
@@ -255,9 +255,9 @@ def fix_broken_images(superpixels):
                 file.write(image_number + "\n")
 
 
-def find_size_variance():
+def find_size_variance(superpixels):
     image_list, root = get_image_list()
-    mask_dir = "SegmentationClass/SuperPixels"
+    mask_dir = "SegmentationClass/{}_sp".format(superpixels)
     dataset_variance = 0
     for image_number in tqdm(image_list):
         mask_path = join(pkg_dir, root, mask_dir, image_number + ".pt")
