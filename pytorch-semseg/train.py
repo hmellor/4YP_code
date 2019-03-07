@@ -376,10 +376,11 @@ def train(cfg, writer, logger_old, args):
 
 if __name__ == "__main__":
     run_id = random.randint(1, 100000)
-    parser = argparse.ArgumentParser(description="config")
+    parser = argparse.ArgumentParser(
+        description="Specify which configuration file to use and which of the training parameters to override"
+    )
     parser.add_argument(
-        "-c",
-        "--config",
+        "config",
         nargs="?",
         type=str,
         help="path of configuration file to use"
@@ -438,7 +439,7 @@ if __name__ == "__main__":
         cfg['training']['optimizer']['lr'] = args.learning_rate[0]
     if cfg['training']['optimizer']['weight_decay'] and args.weight_decay:
         cfg['training']['optimizer']['weight_decay'] = args.weight_decay[0]
-    if cfg['training']['loss']['superpixels'] and args.superpixels:
+    if args.superpixels:
         cfg['training']['loss']['superpixels'] = args.superpixels[0]
 
     print('RUNDIR: {}'.format(logdir))
