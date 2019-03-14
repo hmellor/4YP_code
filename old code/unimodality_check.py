@@ -1,5 +1,4 @@
 import torch
-import matplotlib.pyplot as plt
 from random import uniform
 import numpy as np
 
@@ -11,17 +10,19 @@ def zehan_iou(input, target, size):
     loss = torch.full((gt_classes.numel(),),
                       - float('inf'), device=input.device)
     for i, gt_class in enumerate(gt_classes):
-        theta = input[:, gt_class] - input[:,
-                                           all_classes[all_classes.ne(gt_class)]].logsumexp(1)
+        theta = input[:, gt_class].clone()
+        theta -= input[:, all_classes[all_classes.ne(gt_class)]].logsumexp(1)
         mask_gt = target.eq(gt_class)
         mask_not_gt = target.ne(gt_class)
 
         n_gt = mask_gt.long().sum()
         # Zehan's algorithm
-        # Sort all scores that are supposed to be background and sum them cumulatively
+        # Sort all scores that are supposed to be background and sum them
+        # cumulatively.
         theta_tilde = theta[mask_not_gt].sort(descending=True)[0]
         theta_hat = theta_tilde.cumsum(0)
-        # Evaluate loss for all possible values of U from the min U to all the super-pixels
+        # Evaluate loss for all possible values of U from the min U to all the
+        # super-pixels.
         U = torch.arange(n_gt, n_pixels + 1, device=input.device)
         indices = theta[mask_gt].repeat(U.numel(), 1).t() >= 1. / U.float()
         sigma = (indices.float().t() * theta[mask_gt]).sum(1)
@@ -42,7 +43,7 @@ c_classes = 20
 size = None
 torch.manual_seed(0)
 
-for _ in range(10):
+for _ in range(10000):
     target = torch.randint(0, 2, (n_pixels,)) * uniform(0, c_classes)
     if target.sum() == 0:
         continue
