@@ -1,5 +1,6 @@
 import torch
 import torch.nn.functional as F
+import numpy as np
 
 
 def cross_entropy2d(input, target, weight=None, size_average=True):
@@ -52,11 +53,12 @@ def zehan_iou(input, target, size=None):
         # Reshape to nxc and nx1 respectively
         input = input.transpose(1, 2).transpose(2, 3).contiguous().view(-1, c)
         target = target.view(-1)
+    input = input.double()
     n_pixels, c = input.size()
     all_classes = torch.arange(0, c, device=input.device)
     gt_classes = target.unique(sorted=True)
     loss = torch.full((gt_classes.numel(),),
-                      - float('inf'), device=input.device)
+                      - float('inf'), device=input.device, dtype=torch.double)
     for i, gt_class in enumerate(gt_classes):
         theta = input[:, gt_class].clone()
         theta -= input[:, all_classes[all_classes.ne(gt_class)]].logsumexp(1)
@@ -80,11 +82,15 @@ def zehan_iou(input, target, size=None):
             # Sparsely sample U
             U = torch.linspace(lb, ub, steps=ss, device=input.device).long()
             # Calculate sigma as normal
-            indices = theta[mask_gt].repeat(U.numel(), 1).t() >= 1. / U.float()
-            sigma = (indices.float().t() * theta[mask_gt]).sum(1)
+            indices = theta[mask_gt].repeat(U.numel(), 1).t() >= 1. / U.double()
+            sigma = (indices.double().t() * theta[mask_gt]).sum(1)
             I = indices.sum(0)
-            sigma -= I.float() / U.float()
+            sigma -= I.double() / U.double()
             sigma[1:] += theta_hat[U[1:] - n_gt - 1]
+            # Check that sample is unimodal
+            grads = np.diff(sigma.cpu().detach().numpy())
+            signs = (np.diff(np.sign(grads[grads != 0])) != 0) * 1
+            assert signs.sum() <= 1, 'sparse sigma is not unimodal\n{}\n{}'.format(grads[grads != 0], np.sign(grads[grads != 0]))#"grads:\n{}\nsigns:\n{}\nsigns no zero:\n{}\ndiff:\n{}".format(grads, np.sign(grads), np.sign(grads[grads != 0]), (np.diff(np.sign(grads[grads != 0])) != 0) * 1)
             # Find location of current sample maximum
             sample_max = torch.argmax(sigma)
             # Update sample width to be 1 point above and below sample max
@@ -100,11 +106,15 @@ def zehan_iou(input, target, size=None):
         # Calculate sigma as normal using reduced, dense U that contains
         # global max.
         U = torch.arange(lb, ub + 1, device=input.device)
-        indices = theta[mask_gt].repeat(U.numel(), 1).t() >= 1. / U.float()
-        sigma = (indices.float().t() * theta[mask_gt]).sum(1)
+        indices = theta[mask_gt].repeat(U.numel(), 1).t() >= 1. / U.double()
+        sigma = (indices.double().t() * theta[mask_gt]).sum(1)
         I = indices.sum(0)
-        sigma -= I.float() / U.float()
+        sigma -= I.double() / U.double()
         sigma[1:] += theta_hat[U[1:] - n_gt - 1]
+        # Check that sample is unimodal
+        grads = np.diff(sigma.cpu().detach().numpy())
+        signs = (np.diff(np.sign(grads[grads != 0])) != 0) * 1
+        assert signs.sum() <= 1, 'dense sigma is not unimodal'
         loss[i] = sigma.max()
         loss[i] += 1 - theta[mask_gt].sum()
     return loss.mean() / n_pixels
