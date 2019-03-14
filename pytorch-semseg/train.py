@@ -144,6 +144,7 @@ def train(cfg, writer, logger_old, args):
     time_meter = averageMeter()
 
     train_len = t_loader.train_len
+    val_static = 0
     best_iou = -100.0
     i = start_iter
     j = 0
@@ -343,6 +344,7 @@ def train(cfg, writer, logger_old, args):
                 j = 0
 
                 if score["Mean IoU : \t"] >= best_iou:
+                    val_static = 0
                     best_iou = score["Mean IoU : \t"]
                     state = {
                         "epoch": i + 1,
@@ -356,20 +358,10 @@ def train(cfg, writer, logger_old, args):
                                                  cfg['model']['arch'],
                                                  cfg['data']['dataset']))
                     torch.save(state, save_path)
+                else:
+                    val_static += 1
 
-            if (i + 1) == train_len * (cfg['training']['epochs']):
-                state = {
-                    "epoch": i + 1,
-                    "model_state": model.state_dict(),
-                    "optimizer_state": optimizer.state_dict(),
-                    "scheduler_state": scheduler.state_dict(),
-                    "best_iou": best_iou,
-                }
-                save_path = os.path.join(writer.file_writer.get_logdir(),
-                                         "{}_{}_final_model.pkl".format(
-                                             cfg['model']['arch'],
-                                             cfg['data']['dataset']))
-                torch.save(state, save_path)
+            if (i + 1) == train_len * (cfg['training']['epochs']) or val_static == 10:
                 flag = False
                 break
 
