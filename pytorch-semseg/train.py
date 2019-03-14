@@ -192,7 +192,10 @@ def train(cfg, writer, logger_old, args):
             start_ts = time.time()
             scheduler.step()
             model.train()
-            images = images.to(device)
+            if cfg['training']['loss']['name'] == 'zehaniou':
+                images = images.to(device, dtype=torch.double)
+            else:
+                images = images.to(device)
             labels = labels.to(device)
             labels_s = labels_s.to(device)
             masks = masks.to(device)
@@ -255,7 +258,10 @@ def train(cfg, writer, logger_old, args):
                 model.eval()
                 with torch.no_grad():
                     for i_val, (images_val, labels_val, labels_val_s, masks_val) in tqdm(enumerate(valloader)):
-                        images_val = images_val.to(device)
+                        if cfg['training']['loss']['name'] == 'zehaniou':
+                            images_val = images_val.to(device, dtype=torch.double)
+                        else:
+                            images_val = images_val.to(device)
                         labels_val = labels_val.to(device)
                         labels_val_s = labels_val_s.to(device)
                         masks_val = masks_val.to(device)
