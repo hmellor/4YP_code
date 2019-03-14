@@ -3,24 +3,28 @@ import torch.nn.functional as F
 import numpy as np
 
 
-def cross_entropy2d(input, target, weight=None, size_average=True):
-    n, c, h, w = input.size()
-    nt, ht, wt = target.size()
+def cross_entropy2d(input, target, size=None, weight=None, size_average=True):
+    if size is not None:
+        pass
+    else:
+        n, c, h, w = input.size()
+        nt, ht, wt = target.size()
 
-    # Handle inconsistent size between input and target
-    if h > ht and w > wt:  # upsample labels
-        print('resizing, prediction too large')
-        target = target.unsequeeze(1)
-        target = F.upsample(target, size=(h, w), mode="nearest")
-        target = target.sequeeze(1)
-    elif h < ht and w < wt:  # upsample images
-        print('resizing, prediction too small')
-        input = F.upsample(input, size=(ht, wt), mode="bilinear")
-    elif h != ht and w != wt:
-        raise Exception("Only support upsampling")
+        # Handle inconsistent size between input and target
+        if h > ht and w > wt:  # upsample labels
+            print('resizing, prediction too large')
+            target = target.unsequeeze(1)
+            target = F.upsample(target, size=(h, w), mode="nearest")
+            target = target.sequeeze(1)
+        elif h < ht and w < wt:  # upsample images
+            print('resizing, prediction too small')
+            input = F.upsample(input, size=(ht, wt), mode="bilinear")
+        elif h != ht and w != wt:
+            raise Exception("Only support upsampling")
 
-    input = input.transpose(1, 2).transpose(2, 3).contiguous().view(-1, c)
-    target = target.view(-1)
+        # Reshape to nxc and nx1 respectively
+        input = input.transpose(1, 2).transpose(2, 3).contiguous().view(-1, c)
+        target = target.view(-1)
     loss = F.cross_entropy(
         input,
         target,
@@ -143,9 +147,9 @@ def macro_average(input, target, size=None):
         input = input.transpose(1, 2).transpose(2, 3).contiguous().view(-1, c)
         target = target.view(-1)
     # Initiualise new variables
-    p, _ = input.size()
+    n_pixels, _ = input.size()
     delta = torch.ones_like(input)
-    arange = torch.arange(p, device=input.device)
+    arange = torch.arange(n_pixels, device=input.device)
     # Calculate delta
     delta[arange, target] -= 1
     unique = torch.unique(target)
@@ -154,7 +158,7 @@ def macro_average(input, target, size=None):
         delta[target == k,
               :] /= torch.sum(target == k).float() * unique.size(0)
 
-    input = input / p + delta
+    input = input / n_pixels + delta
     # Evaluate optimal prediction
     pred = torch.argmax(input, 1)
     if size is not None:
@@ -172,30 +176,33 @@ def macro_average(input, target, size=None):
     return loss
 
 
-def micro_average(input, target):
-    n, c, h, w = input.size()
-    nt, ht, wt = target.size()
+def micro_average(input, target, size=None):
+    if size is not None:
+        pass
+    else:
+        n, c, h, w = input.size()
+        nt, ht, wt = target.size()
 
-    # Handle inconsistent size between input and target
-    if h > ht and w > wt:  # upsample labels
-        print('resizing, prediction too large')
-        target = target.unsequeeze(1)
-        target = F.upsample(target, size=(h, w), mode="nearest")
-        target = target.sequeeze(1)
-    elif h < ht and w < wt:  # upsample images
-        print('resizing, prediction too small')
-        input = F.upsample(input, size=(ht, wt), mode="bilinear")
-    elif h != ht and w != wt:
-        raise Exception("Only support upsampling")
+        # Handle inconsistent size between input and target
+        if h > ht and w > wt:  # upsample labels
+            print('resizing, prediction too large')
+            target = target.unsequeeze(1)
+            target = F.upsample(target, size=(h, w), mode="nearest")
+            target = target.sequeeze(1)
+        elif h < ht and w < wt:  # upsample images
+            print('resizing, prediction too small')
+            input = F.upsample(input, size=(ht, wt), mode="bilinear")
+        elif h != ht and w != wt:
+            raise Exception("Only support upsampling")
 
-    # Reshape to nxc and nx1 respectively
-    input = input.transpose(1, 2).transpose(2, 3).contiguous().view(-1, c)
-    target = target.view(-1)
+        # Reshape to nxc and nx1 respectively
+        input = input.transpose(1, 2).transpose(2, 3).contiguous().view(-1, c)
+        target = target.view(-1)
 
     # Initialise new variables
-    pixel_count = nt * ht * wt
+    n_pixels, _ = input.size()
     pred = torch.zeros_like(target)
-    arange = torch.arange(pixel_count, device=input.device)
+    arange = torch.arange(n_pixels, device=input.device)
     # Add delta to input
     input += 1
     input[arange, target] -= 1
@@ -206,7 +213,7 @@ def micro_average(input, target):
     score_pred_delta = torch.sum(input.gather(1, pred.unsqueeze(1)))
     # Evaluate total loss
     loss = score_pred_delta - score_y
-    return loss / pixel_count
+    return loss / n_pixels
 
 
 def multi_scale_cross_entropy2d(
