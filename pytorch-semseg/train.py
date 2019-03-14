@@ -285,23 +285,6 @@ def train(cfg, writer, logger_old, args):
                 logger_old.info("Epoch %d Train Loss: %.4f" % (
                     int((i + 1) / train_len), train_loss_meter.avg))
 
-                score, class_iou = running_metrics_val.get_scores()
-                print("Validation metrics:")
-                for k, v in score.items():
-                    print(k, v)
-                    logger_old.info('{}: {}'.format(k, v))
-                    writer.add_scalar('val_metrics/{}'.format(k), v, i + 1)
-
-                for k, v in class_iou.items():
-                    logger_old.info('{}: {}'.format(k, v))
-                    writer.add_scalar('val_metrics/cls_{}'.format(k), v, i + 1)
-
-                xp.Parent_Val.update(loss=val_loss_meter.avg,
-                                     acc=score['Overall Acc: \t'],
-                                     acccls=score['Mean Acc : \t'],
-                                     fwavacc=score['FreqW Acc : \t'],
-                                     meaniu=score['Mean IoU : \t'])
-
                 score, class_iou = running_metrics_train.get_scores()
                 print("Training metrics:")
                 for k, v in score.items():
@@ -319,6 +302,23 @@ def train(cfg, writer, logger_old, args):
                                        acccls=score['Mean Acc : \t'],
                                        fwavacc=score['FreqW Acc : \t'],
                                        meaniu=score['Mean IoU : \t'])
+
+                score, class_iou = running_metrics_val.get_scores()
+                print("Validation metrics:")
+                for k, v in score.items():
+                    print(k, v)
+                    logger_old.info('{}: {}'.format(k, v))
+                    writer.add_scalar('val_metrics/{}'.format(k), v, i + 1)
+
+                for k, v in class_iou.items():
+                    logger_old.info('{}: {}'.format(k, v))
+                    writer.add_scalar('val_metrics/cls_{}'.format(k), v, i + 1)
+
+                xp.Parent_Val.update(loss=val_loss_meter.avg,
+                                     acc=score['Overall Acc: \t'],
+                                     acccls=score['Mean Acc : \t'],
+                                     fwavacc=score['FreqW Acc : \t'],
+                                     meaniu=score['Mean IoU : \t'])
 
                 xp.Parent_Val.log_and_reset()
                 xp.Parent_Train.log_and_reset()
