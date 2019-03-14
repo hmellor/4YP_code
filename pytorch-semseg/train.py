@@ -330,8 +330,7 @@ def train(cfg, writer, logger_old, args):
 
                 visdir = os.path.join(
                     'runs',
-                    "{}_{}".format(cfg['model']['arch'],
-                                   cfg['training']['loss']['name']),
+                    cfg['training']['loss']['name'],
                     args.name,
                     'plots.json'
                 )
@@ -364,6 +363,7 @@ def train(cfg, writer, logger_old, args):
             if (i + 1) == train_len * (cfg['training']['epochs']) or val_static == 10:
                 flag = False
                 break
+    return best_iou
 
 
 if __name__ == "__main__":
@@ -423,7 +423,7 @@ if __name__ == "__main__":
 
     logdir = os.path.join(
         'runs',
-        cfg['model']['arch'] + '_' + cfg['training']['loss']['name'],
+        cfg['training']['loss']['name'],
         args.name
     )
     writer = SummaryWriter(log_dir=logdir)
@@ -440,4 +440,4 @@ if __name__ == "__main__":
     logger_old = get_logger(logdir)
     logger_old.info('Let the games begin')
 
-    train(cfg, writer, logger_old, args)
+    _ = train(cfg, writer, logger_old, args)
