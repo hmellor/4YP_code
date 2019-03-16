@@ -237,8 +237,9 @@ if __name__ == "__main__":
                 elif (unsampled_neighbours == 0 and
                       neighbours[1, 1] != np.max(neighbours)):
                     raise Exception("Cross-validation code is broken...")
-            # While look broken,
-            print(search_grid)
+            # While loop broken
+            print('Cross validation complete')
+            print('{} locations sampled'.format((neighbours != np.inf).sum()))
             print('sp: {}, lr: {}, wd: {}'.format(sp_level, lr_exp, wd_exp))
             final_chkpnt_path = os.path.join(
                 'runs',
