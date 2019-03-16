@@ -27,9 +27,9 @@ def convert_to_superpixels(input, target, mask):
     Q = mask.unique().numel()
     output = torch.zeros((Q, c), device=input.device)
     size = torch.zeros(Q, device=input.device)
-    counter = torch.ones_like(mask, device=input.device)
+    counter = torch.ones(mask.size(), device=input.device)
     # Calculate the size of each superpixel
-    size.put_(mask, counter.float(), True)
+    size.put_(mask, counter, True)
     # Calculate the mean value of each superpixel
     input = input.view(c, -1)
     mask = mask.view(1, -1).repeat(c, 1)
