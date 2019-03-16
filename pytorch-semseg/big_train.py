@@ -90,7 +90,7 @@ def searching(exp_min, exp_max, exp_const, lr=False, wd=False):
         elif wd:
             exp_1 = exp_const
             exp_2 = exp_var
-        print('lr: {}, wd: {}'.format(exp_1, exp_2))
+        print('sp: {}, lr: {}, wd: {}'.format(sp_level, exp_1, exp_2))
         # If experiment has not been run already, run it
         if search_grid[exp_1, exp_2] == np.inf:
             iou = run_experiment(lr_exp=exp_1, wd_exp=exp_2)
@@ -115,7 +115,7 @@ def find_best_exp(exp_var_init, exp_const, lr=False, wd=False):
         elif wd:
             exp_1 = exp_const
             exp_2 = exp_var
-        print('lr: {}, wd: {}'.format(exp_1, exp_2))
+        print('sp: {}, lr: {}, wd: {}'.format(sp_level, exp_1, exp_2))
         # If experiment has not been run already, run it
         if search_grid[exp_1, exp_2] == np.inf:
             iou = run_experiment(lr_exp=exp_1, wd_exp=exp_2)
@@ -239,7 +239,7 @@ if __name__ == "__main__":
                     raise Exception("Cross-validation code is broken...")
             # While look broken,
             print(search_grid)
-            print('lr: {}, wd: {}'.format(lr_exp, wd_exp))
+            print('sp: {}, lr: {}, wd: {}'.format(sp_level, lr_exp, wd_exp))
             final_chkpnt_path = os.path.join(
                 'runs',
                 cfg['training']['loss']['name'],
