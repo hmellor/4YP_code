@@ -239,7 +239,7 @@ if __name__ == "__main__":
                     raise Exception("Cross-validation code is broken...")
             # While loop broken
             print('Cross validation complete')
-            print('{} locations sampled'.format((neighbours != np.inf).sum()))
+            print('{} locations sampled'.format((search_grid != np.inf).sum()))
             print('sp: {}, lr: {}, wd: {}'.format(sp_level, lr_exp, wd_exp))
             final_chkpnt_path = os.path.join(
                 'runs',
@@ -259,4 +259,4 @@ if __name__ == "__main__":
                 )
             )
             np.savetxt(export_path, search_grid, delimiter=",")
-            print('peak iou this experiment: {}'.format(neighbours.max()))
+            print('peak iou this experiment: {}\n'.format(neighbours.max()))
