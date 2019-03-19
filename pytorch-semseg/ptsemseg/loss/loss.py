@@ -80,7 +80,7 @@ def zehan_iou(input, target, size=None):
         # Initialise lower/upper bounds and sample size.
         lb = n_gt
         ub = n_pixels
-        ss = 300
+        ss = 2000
         # While sample width is greater than sample size
         while ub - lb > ss:
             # Sparsely sample U
@@ -115,10 +115,6 @@ def zehan_iou(input, target, size=None):
         I = indices.sum(0)
         sigma -= I.double() / U.double()
         sigma[1:] += theta_hat[U[1:] - n_gt - 1]
-        # Check that sample is unimodal
-        grads = np.diff(sigma.cpu().detach().numpy())
-        signs = (np.diff(np.sign(grads[grads != 0])) != 0) * 1
-        assert signs.sum() <= 1, 'dense sigma is not unimodal\n{}\n{}'.format(grads[grads != 0], np.sign(grads[grads != 0]))
         loss[i] = sigma.max()
         loss[i] += 1 - theta[mask_gt].sum()
     return loss.mean() / n_pixels

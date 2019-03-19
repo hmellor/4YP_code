@@ -136,9 +136,6 @@ if __name__ == "__main__":
     configs = ['ce', 'macro', 'micro', 'ziou']
     sp_levels = [100, 1000, 10000, None]
 
-    # for testing
-    sp_levels = [100]
-
     for config in configs:
         config = os.path.join('./configs', config + '_adam_alexnet.yml')
 
