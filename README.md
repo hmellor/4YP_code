@@ -1,3 +1,62 @@
+# Learning to Segment Using Overlap Score - the code
+#### Deep Learning Project 2018-19
+[![Oxford Engineering Science](https://www.eng.ox.ac.uk/images/logo.svg)](https://www.eng.ox.ac.uk/)
+
+### Loss functions
+Since the IoU surrogate I am working towards is highly non differentiable, I implemented all loss functions in hinge loss form to simplify the code and the comparisons between different loss functions.
+
+There are three loss functions explored are as follows:
+  - Micro-average
+  - Macro-average
+  - Overlap Score (IoU) Surrogate (Adapted from a multi-label classification algorithm written by Z. Chen)
+  
+![](https://www.pyimagesearch.com/wp-content/uploads/2016/09/iou_equation.png)
+
+### Networks
+I used an [fully convolutional version of AlexNet](https://people.eecs.berkeley.edu/~jonlong/long_shelhamer_fcn.pdf), long et al., because it's small size meant I could run experiments in quick succession to validate code.
+
+![](http://meetshah1995.github.io/images/blog/ss/fcn.png)
+
+### Superpixels
+To reduce the problem size and experiment with their effectiveness I also implemented a pipeline for performing all the experiments using superpixels. The clustering algorithm I used was [SLICO](https://ivrl.epfl.ch/research-2/research-current/research-superpixels/#SLICO), Achanta et al. 
+
+![](https://ivrl.epfl.ch/wp-content/uploads/2018/08/156079_SLICO.jpg)
+
+## Usage
+Launch [visdom](https://github.com/facebookresearch/visdom#launch) by running (in a separate terminal window):
+```
+visdom -port 8098    # This is the port I used in my code, you can change it to your liking
+```
+Train the model like this:
+```
+python train.py [-h] [-lr LR] [-wd WD] [-sp SP] [-n [NAME]] [-e] [config]
+```
+Where each of the arguments are defined as follows:
+```
+positional arguments:
+  config                path of configuration file to use
+
+optional arguments:
+  -h, --help                        show this help message and exit
+  
+  -lr LR, --learning_rate LR        learning rate to use
+  
+  -wd WD, --weight_decay WD         weight decay to use
+  
+  -sp SP, --superpixels SP          how many superpixels to use
+  
+  -n [NAME], --name [NAME]          name to give the experiment output directory
+                                    
+  -e, --evaluate                    causes prediction/image pairs to be saved for later
+                                    evaluation
+```
+By altering the values in the lists `configs` and `sp_levels` in `big_train.py` you can automatically cross validate any combination of loss function and superpixel level. The script takes no arguments so is run as follows:
+```
+python big_train.py
+```
+_______
+### The README from the original [codebase](https://github.com/meetshah1995/pytorch-semseg), for the interested:
+
 # pytorch-semseg
 
 [![license](https://img.shields.io/github/license/mashape/apistatus.svg)](https://github.com/meetshah1995/pytorch-semseg/blob/master/LICENSE)
