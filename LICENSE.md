@@ -1,6 +1,6 @@
 MIT License
 
-Copyright (c) 2017 Meet Pragnesh Shah 
+Copyright (c) for portions of project 4YP_code are held by Meet Pragnesh Shah, 2017, as part of project pytorch-semseg. All other copyright for project 4YP_code are held by Harry Mellor, 2019. 
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
