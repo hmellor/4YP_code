@@ -3,7 +3,7 @@ import torch.nn.functional as F
 import numpy as np
 
 
-def cross_entropy2d(input, target, size=None, weight=None, size_average=True):
+def input_reshaping(input, target, size):
     if size is not None:
         pass
     else:
@@ -22,9 +22,15 @@ def cross_entropy2d(input, target, size=None, weight=None, size_average=True):
         elif h != ht and w != wt:
             raise Exception("Only support upsampling")
 
-        # Reshape to nxc and nx1 respectively
+        # Reshape to pxc and px1 respectively (p is number of pixels)
         input = input.transpose(1, 2).transpose(2, 3).contiguous().view(-1, c)
         target = target.view(-1)
+    return input, target
+
+
+def cross_entropy2d(input, target, size=None, weight=None, size_average=True):
+    input, target = input_reshaping(input, target, size)
+
     loss = F.cross_entropy(
         input,
         target,
@@ -36,27 +42,8 @@ def cross_entropy2d(input, target, size=None, weight=None, size_average=True):
 
 
 def zehan_iou(input, target, size=None):
-    if size is not None:
-        pass
-    else:
-        n, c, h, w = input.size()
-        nt, ht, wt = target.size()
+    input, target = input_reshaping(input, target, size)
 
-        # Handle inconsistent size between input and target
-        if h > ht and w > wt:  # upsample labels
-            print('resizing, prediction too large')
-            target = target.unsequeeze(1)
-            target = F.upsample(target, size=(h, w), mode="nearest")
-            target = target.sequeeze(1)
-        elif h < ht and w < wt:  # upsample images
-            print('resizing, prediction too small')
-            input = F.upsample(input, size=(ht, wt), mode="bilinear")
-        elif h != ht and w != wt:
-            raise Exception("Only support upsampling")
-
-        # Reshape to nxc and nx1 respectively
-        input = input.transpose(1, 2).transpose(2, 3).contiguous().view(-1, c)
-        target = target.view(-1)
     input = input.double()
     n_pixels, c = input.size()
     all_classes = torch.arange(0, c, device=input.device)
@@ -121,27 +108,8 @@ def zehan_iou(input, target, size=None):
 
 
 def macro_average(input, target, size=None):
-    if size is not None:
-        pass
-    else:
-        n, c, h, w = input.size()
-        nt, ht, wt = target.size()
+    input, target = input_reshaping(input, target, size)
 
-        # Handle inconsistent size between input and target
-        if h > ht and w > wt:  # upsample labels
-            print('resizing, prediction too large')
-            target = target.unsequeeze(1)
-            target = F.upsample(target, size=(h, w), mode="nearest")
-            target = target.sequeeze(1)
-        elif h < ht and w < wt:  # upsample images
-            print('resizing, prediction too small')
-            input = F.upsample(input, size=(ht, wt), mode="bilinear")
-        elif h != ht and w != wt:
-            raise Exception("Only support upsampling")
-
-        # Reshape to nxc and nx1 respectively
-        input = input.transpose(1, 2).transpose(2, 3).contiguous().view(-1, c)
-        target = target.view(-1)
     # Initiualise new variables
     n_pixels, _ = input.size()
     delta = torch.ones_like(input)
@@ -173,27 +141,7 @@ def macro_average(input, target, size=None):
 
 
 def micro_average(input, target, size=None):
-    if size is not None:
-        pass
-    else:
-        n, c, h, w = input.size()
-        nt, ht, wt = target.size()
-
-        # Handle inconsistent size between input and target
-        if h > ht and w > wt:  # upsample labels
-            print('resizing, prediction too large')
-            target = target.unsequeeze(1)
-            target = F.upsample(target, size=(h, w), mode="nearest")
-            target = target.sequeeze(1)
-        elif h < ht and w < wt:  # upsample images
-            print('resizing, prediction too small')
-            input = F.upsample(input, size=(ht, wt), mode="bilinear")
-        elif h != ht and w != wt:
-            raise Exception("Only support upsampling")
-
-        # Reshape to nxc and nx1 respectively
-        input = input.transpose(1, 2).transpose(2, 3).contiguous().view(-1, c)
-        target = target.view(-1)
+    input, target = input_reshaping(input, target, size)
 
     # Initialise new variables
     n_pixels, _ = input.size()
@@ -213,7 +161,7 @@ def micro_average(input, target, size=None):
 
 
 def multi_scale_cross_entropy2d(
-    input, target, weight=None, size_average=True, scale_weight=None
+    input, target, size=None, weight=None, size_average=True, scale_weight=None
 ):
     # Auxiliary training for PSPNet [1.0, 0.4] and ICNet [1.0, 0.4, 0.16]
     if scale_weight is None:  # scale_weight: torch tensor type
@@ -231,23 +179,17 @@ def multi_scale_cross_entropy2d(
     return loss
 
 
-def bootstrapped_cross_entropy2d(input,
-                                 target,
-                                 K,
-                                 weight=None,
-                                 size_average=True):
-
+def bootstrapped_cross_entropy2d(
+    input, target, K, size=None, weight=None, size_average=True
+):
+    assert size is None, "This loss function has not been adapted for superpixels"
     batch_size = input.size()[0]
 
-    def _bootstrap_xentropy_single(input,
-                                   target,
-                                   K,
-                                   weight=None,
-                                   size_average=True):
+    def _bootstrap_xentropy_single(
+        input, target, K, size=None, weight=None, size_average=True
+    ):
+        input, target = input_reshaping(input, target, size)
 
-        n, c, h, w = input.size()
-        input = input.transpose(1, 2).transpose(2, 3).contiguous().view(-1, c)
-        target = target.view(-1)
         loss = F.cross_entropy(input,
                                target,
                                weight=weight,
