@@ -24,6 +24,14 @@ To reduce the problem size and experiment with their effectiveness I also implem
 
 ![](https://ivrl.epfl.ch/wp-content/uploads/2018/08/156079_SLICO.jpg)
 
+## Requirements
+
+First, run:
+```
+pip install -r requirements.txt
+```
+Then install `logger` by following the instructions [here](https://github.com/oval-group/logger).
+
 ## Usage
 Launch [visdom](https://github.com/facebookresearch/visdom#launch) by running (in a separate terminal window):
 ```
