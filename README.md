@@ -2,6 +2,8 @@
 #### Deep Learning Project 2018-19
 [![Oxford Engineering Science](https://www.eng.ox.ac.uk/images/logo.svg)](https://www.eng.ox.ac.uk/)
 
+This repository is a submodule of my [4th year project](https://github.com/HMellor/4YP).
+
 ### Loss functions
 Since the IoU surrogate I am working towards is highly non differentiable, I implemented all loss functions in hinge loss form to simplify the code and the comparisons between different loss functions.
 
