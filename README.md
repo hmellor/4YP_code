@@ -24,7 +24,9 @@ To reduce the problem size and experiment with their effectiveness I also implem
 
 ![](https://ivrl.epfl.ch/wp-content/uploads/2018/08/156079_SLICO.jpg)
 
-## Requirements
+## Getting Started
+
+### Requirements
 
 First, run:
 ```
@@ -32,7 +34,14 @@ pip install -r requirements.txt
 ```
 Then install `logger` by following the instructions [here](https://github.com/oval-group/logger).
 
+### Data
+
+* Download data for desired dataset(s) from list of URLs [here](https://meetshah1995.github.io/semantic-segmentation/deep-learning/pytorch/visdom/2017/06/01/semantic-segmentation-over-the-years.html#sec_datasets).
+* Extract the zip / tar and modify the path appropriately in `dataset_config.json`
+
 ## Usage
+
+### Train
 Launch [visdom](https://github.com/facebookresearch/visdom#launch) by running (in a separate terminal window):
 ```
 visdom -port 8098    # This is the port I used in my code, you can change it to your liking
