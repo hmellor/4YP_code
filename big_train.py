@@ -210,9 +210,14 @@ if __name__ == "__main__":
                 unsampled_neighbours = (neighbours == np.inf).sum()
                 print('neighbours:\n', neighbours)
                 print('unsampled neighbours:', unsampled_neighbours)
-                # If only the corners of the 3x3 haven't been sampled,
-                # sample them.
-                if 0 < unsampled_neighbours <= 4:
+                # If only the corners of the 3x3 haven't been sampled and them
+                # centre of neighbours is the max of the sampled neighbours,
+                # sample the corners.
+                condition1 = 0 < unsampled_neighbours <= 4
+                centre = neighbours[1, 1]
+                sampled_neighbours = neighbours[neighbours != np.inf]
+                condition2 = centre == np.max(sampled_neighbours)
+                if condition1 and condition2:
                     if search_grid[lr_exp-1, wd_exp-1] == np.inf:
                         iou = run_experiment(lr_exp=lr_exp-1, wd_exp=wd_exp-1)
                         search_grid[lr_exp-1, wd_exp-1] = iou
