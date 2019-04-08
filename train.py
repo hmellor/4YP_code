@@ -50,9 +50,6 @@ def train(cfg, writer, logger_old, args):
 
     # Setup device
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    # Setup default datatype
-    if cfg['training']['loss']['name'] == 'zehan_iou':
-        torch.set_default_dtype(torch.double)
     # Setup Augmentations
     augmentations = cfg['training'].get('augmentations', None)
     data_aug = get_composed_augmentations(augmentations)
@@ -195,10 +192,7 @@ def train(cfg, writer, logger_old, args):
             start_ts = time.time()
             scheduler.step()
             model.train()
-            if cfg['training']['loss']['name'] == 'zehan_iou':
-                images = images.to(device, dtype=torch.double)
-            else:
-                images = images.to(device)
+            images = images.to(device)
             labels = labels.to(device)
             labels_s = labels_s.to(device)
             masks = masks.to(device)
@@ -261,10 +255,7 @@ def train(cfg, writer, logger_old, args):
                 model.eval()
                 with torch.no_grad():
                     for i_val, (images_val, labels_val, labels_val_s, masks_val) in tqdm(enumerate(valloader)):
-                        if cfg['training']['loss']['name'] == 'zehan_iou':
-                            images_val = images_val.to(device, dtype=torch.double)
-                        else:
-                            images_val = images_val.to(device)
+                        images_val = images_val.to(device)
                         labels_val = labels_val.to(device)
                         labels_val_s = labels_val_s.to(device)
                         masks_val = masks_val.to(device)
