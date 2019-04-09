@@ -151,9 +151,16 @@ def micro_average(input, target, size=None):
     input[arange, target] -= 1
     # Evaluate optimal prediction
     pred = torch.argmax(input, 1)
-    # Evaluate scores for ground truth and prediction
-    score_y = torch.sum(input.gather(1, target.unsqueeze(1)))
-    score_pred_delta = torch.sum(input.gather(1, pred.unsqueeze(1)))
+    if size is not None:
+        # Evaluate scores for ground truth and prediction
+        size_summed = size.sum()
+        score_y = torch.sum(input.gather(
+            1, target.unsqueeze(1)) * size) / size_summed
+        score_pred_delta = torch.sum(input.gather(
+            1, pred.unsqueeze(1)) * size) / size_summed
+    else:
+        score_y = torch.sum(input.gather(1, target.unsqueeze(1)))
+        score_pred_delta = torch.sum(input.gather(1, pred.unsqueeze(1)))
     # Evaluate total loss
     loss = score_pred_delta - score_y
     return loss / n_pixels
