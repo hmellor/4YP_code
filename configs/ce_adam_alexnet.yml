@@ -20,5 +20,6 @@ training:
     loss:
         name: 'cross_entropy'
         size_average: True
+        superpixels:
     lr_schedule:
     resume: #runs/config/80202/fcn8s_pascal.pkl
