@@ -191,10 +191,14 @@ def mask_accuracy(target, mask):
 
 def dataset_accuracy(superpixels):
     # Generate image list
-    image_list = get_image_list()
+    if superpixels is not None:
+        image_list = get_image_list('trainval_super')
+    else:
+        image_list = get_image_list()
+
     mask_acc = 0
-    mask_dir = "SegmentationClass/SegmentationClass/{}_sp".format(superpixels)
-    target_dir = "SegmentationClass/pre_encoded_{}_sp".format(superpixels)
+    mask_dir = "SegmentationClass/{}_sp".format(superpixels)
+    target_dir = "SegmentationClass/pre_encoded"
     for image_number in tqdm(image_list):
         mask_path = join(root, mask_dir, image_number + ".pt")
         target_path = join(root, target_dir, image_number + ".png")
@@ -240,7 +244,7 @@ def find_usable_images(split, superpixels):
 
 
 def fix_broken_images(superpixels):
-    for split in ["train", "val"]:
+    for split in ["train", "val", "trainval"]:
         usable = find_usable_images(split=split, superpixels=superpixels)
         super_path = join(root, "ImageSets/Segmentation", split + "_super.txt")
         if exists(super_path):
@@ -251,7 +255,11 @@ def fix_broken_images(superpixels):
 
 
 def find_size_variance(superpixels):
-    image_list = get_image_list()
+    # Generate image list
+    if superpixels is not None:
+        image_list = get_image_list('trainval_super')
+    else:
+        image_list = get_image_list()
     mask_dir = "SegmentationClass/{}_sp".format(superpixels)
     dataset_variance = 0
     for image_number in tqdm(image_list):
