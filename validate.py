@@ -32,7 +32,7 @@ def iou(gt, pred):
     return iou
 
 
-def setup_logging_train(name, cfg):
+def setup_logging_train(args, cfg):
     # Create argparser and logging object to send to train()
     parser = argparse.ArgumentParser()
     # Pass name to the argparser
@@ -40,7 +40,7 @@ def setup_logging_train(name, cfg):
         "--name",
         nargs="?",
         type=str,
-        default=name,
+        default=args.name,
         help="argparse.SUPPRESS"
     )
     # train() needs this arg but we wont be using it here
@@ -113,7 +113,7 @@ def validate(cfg, args):
         checkpoint = torch.load(args.model_path)
         model.load_state_dict(checkpoint["model_state"])
     else:
-        train_args, writer, logger_old = setup_logging_train(args.name, cfg)
+        train_args, writer, logger_old = setup_logging_train(args, cfg)
         _ = train(cfg, writer, logger_old, train_args)
 
         checkpoint = torch.load(args.model_path)
