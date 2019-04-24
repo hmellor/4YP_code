@@ -29,6 +29,20 @@ def setup_logging(name, cfg):
         default=model_path,
         help="Path to the saved model",
     )
+    parser.add_argument(
+        "--name",
+        nargs="?",
+        type=str,
+        default=name,
+        help="argparse.SUPPRESS"
+    )
+    parser.add_argument(
+        "config",
+        nargs="?",
+        type=str,
+        default=config,
+        help="path of configuration file to use"
+    )
 
     args = parser.parse_args()
     return args
@@ -123,9 +137,6 @@ if __name__ == "__main__":
     run_id = random.randint(1, 100000)
     configs = ['ce', 'macro', 'micro', 'ziou']
     sp_levels = [100, 1000, 10000, None]
-
-    configs = ['ce']
-    sp_levels = [10000]
 
     for config in configs:
         config = os.path.join('./configs', config + '_adam_alexnet.yml')

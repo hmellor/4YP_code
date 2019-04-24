@@ -1,38 +1,68 @@
 import os
-import sys
 import yaml
 import torch
-import visdom
 import argparse
-import timeit
+import shutil
 import numpy as np
-import scipy.misc as misc
-import torch.nn as nn
-import torch.nn.functional as F
-import torchvision.models as models
 
 from torch.utils import data
 
 from tqdm import tqdm
 
+from ptsemseg.loader import get_loader
 from ptsemseg.models import get_model
-from ptsemseg.loader import get_loader, get_data_path
-from ptsemseg.augmentations import get_composed_augmentations
 from ptsemseg.superpixels import setup_superpixels
 from ptsemseg.superpixels import convert_to_superpixels
 from ptsemseg.superpixels import convert_to_pixels
+
+from train import train
+from ptsemseg.utils import get_logger
+from tensorboardX import SummaryWriter
 
 
 def iou(gt, pred):
     iou_sum = 0
     for cls in np.unique(pred):
-        cls_pred = (pred==cls)
-        cls_gt = (gt==cls)
+        cls_pred = (pred == cls)
+        cls_gt = (gt == cls)
         intersection = (cls_pred & cls_gt).sum()
         union = (cls_pred | cls_gt).sum()
-        iou_sum  += intersection / union
+        iou_sum += intersection / union
     iou = iou_sum / len(np.unique(pred))
     return iou
+
+
+def setup_logging_train(name, cfg):
+    # Create argparser and logging object to send to train()
+    parser = argparse.ArgumentParser()
+    # Pass name to the argparser
+    parser.add_argument(
+        "--name",
+        nargs="?",
+        type=str,
+        default=name,
+        help="argparse.SUPPRESS"
+    )
+    # train() needs this arg but we wont be using it here
+    parser.add_argument(
+        '--evaluate',
+        action='store_true',
+        help='argparse.SUPPRESS'
+    )
+    train_args = parser.parse_args()
+    # Define the experiment data directory
+    logdir = os.path.join(
+        'runs',
+        cfg['training']['loss']['name'],
+        args.name
+    )
+    writer = SummaryWriter(log_dir=logdir)
+    print('RUNDIR: {}'.format(logdir))
+    shutil.copy(args.config, logdir)
+
+    logger_old = get_logger(logdir)
+    logger_old.info('Let the games begin')
+    return train_args, writer, logger_old
 
 
 def validate(cfg, args):
@@ -79,8 +109,16 @@ def validate(cfg, args):
         model, device_ids=range(torch.cuda.device_count()))
 
     # Load State
-    checkpoint = torch.load(args.model_path)
-    model.load_state_dict(checkpoint["model_state"])
+    if os.path.isfile(args.model_path):
+        checkpoint = torch.load(args.model_path)
+        model.load_state_dict(checkpoint["model_state"])
+    else:
+        train_args, writer, logger_old = setup_logging_train(args.name, cfg)
+        _ = train(cfg, writer, logger_old, train_args)
+
+        checkpoint = torch.load(args.model_path)
+        model.load_state_dict(checkpoint["model_state"])
+
     model.eval()
     model.to(device)
 
@@ -121,7 +159,6 @@ if __name__ == "__main__":
         default="fcn8s_pascal_1_26.pkl",
         help="Path to the saved model",
     )
-
 
     args = parser.parse_args()
 
