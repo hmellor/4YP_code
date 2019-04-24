@@ -246,7 +246,7 @@ if __name__ == "__main__":
             print('{} locations sampled'.format((search_grid != np.inf).sum()))
             print('sp: {}, lr: {}, wd: {}'.format(sp_level, lr_exp, wd_exp))
             final_chkpnt_path = os.path.join(
-                'runs',
+                'vals',
                 cfg['training']['loss']['name'],
                 'cross_validation_final_{}_{}.npy'.format(
                     cfg['training']['loss']['name'],
@@ -255,7 +255,7 @@ if __name__ == "__main__":
             )
             np.save(final_chkpnt_path, search_grid)
             export_path = os.path.join(
-                'runs',
+                'vals',
                 cfg['training']['loss']['name'],
                 'cross_validation_final_{}_{}.csv'.format(
                     cfg['training']['loss']['name'],
