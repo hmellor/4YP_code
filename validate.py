@@ -116,6 +116,7 @@ def validate(cfg, args):
         train_args, writer, logger_old = setup_logging_train(args, cfg)
         _ = train(cfg, writer, logger_old, train_args)
 
+        setup_superpixels(100)
         checkpoint = torch.load(args.model_path)
         model.load_state_dict(checkpoint["model_state"])
 
