@@ -22,13 +22,13 @@ from tensorboardX import SummaryWriter
 
 def iou(gt, pred):
     iou_sum = 0
-    for cls in np.unique(pred):
+    for cls in np.unique(gt):
         cls_pred = (pred == cls)
         cls_gt = (gt == cls)
         intersection = (cls_pred & cls_gt).sum()
         union = (cls_pred | cls_gt).sum()
         iou_sum += intersection / union
-    iou = iou_sum / len(np.unique(pred))
+    iou = iou_sum / len(np.unique(gt))
     return iou
 
 
