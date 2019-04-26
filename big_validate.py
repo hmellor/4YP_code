@@ -236,6 +236,19 @@ if __name__ == "__main__":
                         iou = run_experiment(lr_exp=lr_exp+1, wd_exp=wd_exp+1)
                         search_grid[lr_exp+1, wd_exp+1] = iou
                         np.save(chkpnt_path, search_grid)
+                elif condition1 and not condition2:
+                    if search_grid[lr_exp-1, wd_exp-1] == np.max(sampled_neighbours):
+                        lr_exp -= 1
+                        wd_exp -= 1
+                    elif search_grid[lr_exp-1, wd_exp+1] == np.max(sampled_neighbours):
+                        lr_exp -= 1
+                        wd_exp += 1
+                    elif search_grid[lr_exp+1, wd_exp-1] == np.max(sampled_neighbours):
+                        lr_exp += 1
+                        wd_exp -= 1
+                    elif search_grid[lr_exp+1, wd_exp+1] == np.max(sampled_neighbours):
+                        lr_exp += 1
+                        wd_exp += 1
                 # If 3x3 region is populated but the max isn't in the centre,
                 # I need to write some more code.
                 elif (unsampled_neighbours == 0 and
