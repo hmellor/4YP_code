@@ -119,3 +119,5 @@ runs/
 *.bbl
 *.toc
 *.pdf
+
+vals/
