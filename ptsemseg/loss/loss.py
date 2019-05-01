@@ -144,11 +144,11 @@ def micro_average(input, target, size=None):
 
     # Initialise new variables
     n_pixels, _ = input.size()
-    pred = torch.zeros_like(target)
+    delta = torch.ones_like(input)
     arange = torch.arange(n_pixels, device=input.device)
-    # Add delta to input
-    input += 1
-    input[arange, target] -= 1
+    # Calculate delta
+    delta[arange, target] -= 1
+    input = (input + delta) / n_pixels
     # Evaluate optimal prediction
     pred = torch.argmax(input, 1)
     if size is not None:
@@ -163,7 +163,7 @@ def micro_average(input, target, size=None):
         score_pred_delta = torch.sum(input.gather(1, pred.unsqueeze(1)))
     # Evaluate total loss
     loss = score_pred_delta - score_y
-    return loss / n_pixels
+    return loss
 
 
 def multi_scale_cross_entropy2d(

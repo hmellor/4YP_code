@@ -129,7 +129,7 @@ def validate(cfg, args):
     model.to(device)
     model.eval()
     with torch.no_grad():
-        print("Evaluated right now:")
+#        print("Evaluated right now:")
         for i, (images, labels, labels_s, masks) in tqdm(enumerate(valloader)):
             images = images.to(device)
             labels = labels.to(device)
@@ -192,6 +192,6 @@ if __name__ == "__main__":
     with open(args.config) as fp:
         cfg = yaml.load(fp)
 
-    cfg['training']['loss']['superpixels'] = 10000
+    cfg['training']['loss']['superpixels'] = 100
 
     validate(cfg, args)
