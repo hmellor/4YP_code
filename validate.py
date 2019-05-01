@@ -8,9 +8,12 @@ import numpy as np
 from torch.utils import data
 
 from tqdm import tqdm
+import scipy.misc as misc
+
 
 from ptsemseg.loader import get_loader
 from ptsemseg.models import get_model
+from ptsemseg.metrics import runningScore
 from ptsemseg.superpixels import setup_superpixels
 from ptsemseg.superpixels import convert_to_superpixels
 from ptsemseg.superpixels import convert_to_pixels
@@ -101,6 +104,7 @@ def validate(cfg, args):
 
     # Setup Metrics
     sum_iou = 0
+    running_metrics_val = runningScore(n_classes)
 
     # Setup Model
     model = get_model(cfg['model'], n_classes).to(device)
@@ -112,6 +116,8 @@ def validate(cfg, args):
     if os.path.isfile(args.model_path):
         checkpoint = torch.load(args.model_path)
         model.load_state_dict(checkpoint["model_state"])
+#        print("Saved at train time:")
+#        print("Old metric IoU:", checkpoint['best_iou'])
     else:
         train_args, writer, logger_old = setup_logging_train(args, cfg)
         _ = train(cfg, writer, logger_old, train_args)
@@ -120,28 +126,42 @@ def validate(cfg, args):
         checkpoint = torch.load(args.model_path)
         model.load_state_dict(checkpoint["model_state"])
 
-    model.eval()
     model.to(device)
+    model.eval()
+    with torch.no_grad():
+        print("Evaluated right now:")
+        for i, (images, labels, labels_s, masks) in tqdm(enumerate(valloader)):
+            images = images.to(device)
+            labels = labels.to(device)
+            labels_s = labels_s.to(device)
+            masks = masks.to(device)
 
-    for i, (images, labels, labels_s, masks) in tqdm(enumerate(valloader)):
-        images = images.to(device)
-        labels = labels.to(device)
-        labels_s = labels_s.to(device)
-        masks = masks.to(device)
+            outputs = model(images)
+            if use_superpixels:
+                outputs_s, labels_s, sizes = convert_to_superpixels(
+                    outputs, labels_s, masks)
+                outputs = convert_to_pixels(
+                    outputs_s, outputs, masks)
+            pred = outputs.data.max(1)[1].cpu().numpy()
+            gt = labels.data.cpu().numpy()
 
-        outputs = model(images)
-        if use_superpixels:
-            outputs_s, labels_s, sizes = convert_to_superpixels(
-                outputs, labels_s, masks)
-            outputs = convert_to_pixels(
-                outputs_s, outputs, masks)
-        pred = outputs.data.max(1)[1].cpu().numpy()
-        gt = labels.data.cpu().numpy()
+            image_iou = iou(gt, pred)
+            sum_iou += image_iou
 
-        image_iou = iou(gt, pred)
-        sum_iou += image_iou
-    mean_iou = sum_iou / i
-    return mean_iou
+            running_metrics_val.update(gt, pred)
+            if args.evaluate:
+                decoded = loader.decode_segmap(np.squeeze(pred, axis=0))
+                misc.imsave("./{}.png".format(i), decoded)
+                image_save = np.transpose(np.squeeze(images.data.cpu().numpy(), axis=0), (1,2,0))
+                misc.imsave("./{}.jpg".format(i), image_save)
+
+    score, class_iou = running_metrics_val.get_scores()
+    mean_iou_old = score["Mean IoU : \t"]
+#    print("Old metric IoU:", mean_iou_old)
+
+    mean_iou_new = sum_iou / i
+    print("New metric IoU", mean_iou_new)
+    return mean_iou_new, mean_iou_old
 
 
 if __name__ == "__main__":
@@ -159,6 +179,12 @@ if __name__ == "__main__":
         type=str,
         default="fcn8s_pascal_1_26.pkl",
         help="Path to the saved model",
+    )
+    parser.add_argument(
+        '-e',
+        '--evaluate',
+        action='store_true',
+        help='causes prediction/image pairs to be saved for later evaluation'
     )
 
     args = parser.parse_args()

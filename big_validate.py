@@ -59,8 +59,8 @@ def run_experiment(lr_exp, wd_exp):
     # Set up all datalogging that train() needs
     args = setup_logging(name, cfg)
     # Run the experiment
-    iou = validate(cfg, args)
-    return iou
+    iou_new, iou_old = validate(cfg, args)
+    return iou_new
 
 
 def searching(exp_min, exp_max, exp_const, lr=False, wd=False):
